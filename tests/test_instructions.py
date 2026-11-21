@@ -20,6 +20,18 @@ class InstructionsTest(unittest.TestCase):
         self.assertEqual(fm["applyTo"], "**/*.md")
         self.assertTrue(fm["description"])
 
+    def test_spring_boot_instructions_apply_to_java(self):
+        fm = frontmatter(REPO / ".github/instructions/java-spring-boot.instructions.md")
+        self.assertEqual(fm["applyTo"], "**/*.java")
+        self.assertTrue(fm["description"])
+
+    def test_spring_boot_instructions_credit_their_source(self):
+        text = (REPO / ".github/instructions/java-spring-boot.instructions.md").read_text(encoding="utf-8")
+        self.assertIn("https://github.com/github/awesome-copilot", text)
+        self.assertIn("docs/third-party-licenses/awesome-copilot-LICENSE", text)
+        license_text = (REPO / "docs/third-party-licenses/awesome-copilot-LICENSE").read_text(encoding="utf-8")
+        self.assertIn("Copyright GitHub, Inc.", license_text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -11,6 +11,7 @@ guide for the team is in [docs/genai-framework.md](docs/genai-framework.md).
 | `AGENTS.md` | Main instructions for everyone |
 | `projects/example-app/AGENTS.md` | Example project with its own rule |
 | `.github/instructions/markdown.instructions.md` | Style rules for `**/*.md` |
+| `.github/instructions/java-spring-boot.instructions.md` | Spring Boot backend rules for `**/*.java`, adapted from `github/awesome-copilot` (MIT, license in `docs/third-party-licenses/`) |
 | `.agents/skills/commit-message/` | Own example skill |
 | `.github/agents/reviewer.agent.md` | Agent `reviewer`, may only read and search |
 | `.vscode/settings.json` | `chat.useNestedAgentsMdFiles: true` |
@@ -35,7 +36,8 @@ Start a **new** chat session after every change.
 
 - [ ] 1. Open the folder over Remote-SSH and mark it as trusted.
 - [ ] 2. Open "Chat: Open Customizations":
-  - Instructions: `AGENTS.md`, `markdown.instructions.md`
+  - Instructions: `AGENTS.md`, `markdown.instructions.md`,
+    `java-spring-boot.instructions.md`
   - Skills: `commit-message` (workspace), `private-example` (personal)
   - Agents: `reviewer`
   - Note: If you have a local `CLAUDE.md`, it also shows up there, because VS
@@ -44,7 +46,10 @@ Start a **new** chat session after every change.
   offered.
 - [ ] 4. `reviewer` can be selected in the agent picker.
 - [ ] 5. Ask the chat about a file in `projects/example-app/`. The references
-  show `projects/example-app/AGENTS.md`.
+  show `projects/example-app/AGENTS.md`. Then ask it to create a Spring Boot
+  REST controller in `projects/example-app/HelloController.java`. The
+  references show `java-spring-boot.instructions.md`, and the code uses
+  constructor injection. Delete the file afterwards.
 - [ ] 6. No MCP server comes from the repo. Add `azure-devops` to
   `~/.copilot/mcp-config.json` as described in the guide
   ([Private MCP servers](docs/genai-framework.md#private-mcp-servers)). Then

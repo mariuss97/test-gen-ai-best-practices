@@ -297,6 +297,7 @@ private customizations belong in the home directory.
 | `AGENTS.md` | Contains the purpose of the repo, the language rule (repository content in English, replies in the user's language), the hint about the check in VS Code, and a pointer to the guide. Replaces the Superpowers hook with the hint to check before each task whether a skill fits, and to read the skill `using-superpowers` for that. Also explains that `superpowers:<name>` means the skill `<name>` under `.github/skills/`. | Appears under "Instructions"; is named as a reference in answers. |
 | `projects/example-app/AGENTS.md` and `README.md` | Example project with its own, easily recognizable rule (answers start with "Rules from projects/example-app/AGENTS.md active."). | Question about a file in the project: the answer names this `AGENTS.md` as a reference. |
 | `.github/instructions/markdown.instructions.md` | Style rules for docs (English, short sentences, sentence-case headings, tables for comparisons), `applyTo: "**/*.md"`. | Appears under "Instructions"; applies when editing `.md` files. |
+| `.github/instructions/java-spring-boot.instructions.md` | Spring Boot backend best practices, `applyTo: "**/*.java"`. Adapted from `instructions/springboot.instructions.md` in `github/awesome-copilot` (MIT, commit 942a83b0a080) and extended (web layer with DTOs and `ProblemDetail`, transactions, persistence, testing). License in `docs/third-party-licenses/awesome-copilot-LICENSE`. | Creating a `.java` file in chat shows it in the references. |
 | `.agents/skills/commit-message/SKILL.md` | Writes a commit message from the changes. Example format: `<area>: <imperative description>`, blank line, bullet points. Marked in the skill as an example that the team replaces with its real format. Only suggests the message, never commits. | Appears under "Skills" as a workspace skill and as `/commit-message`. |
 | `.github/agents/reviewer.agent.md` | Reviews changes, may only read and search, changes nothing (`tools: ['read', 'search']`). | Appears in the agent picker as "reviewer". |
 | `.vscode/settings.json` | `chat.useNestedAgentsMdFiles: true`, with a comment why. Nothing else. | The setting is set in the workspace tab. |
@@ -387,7 +388,7 @@ worded generally and names the demo files at most as an example. Content:
 
 1. Open the main folder of the repo over Remote-SSH and mark it as trusted.
 2. Open "Chat: Open Customizations":
-   - Instructions: `AGENTS.md`, `markdown.instructions.md`
+   - Instructions: `AGENTS.md`, `markdown.instructions.md`, `java-spring-boot.instructions.md`
    - Skills: `commit-message` (workspace), `private-example` (personal)
    - Agents: `reviewer`
 3. Type `/` in the chat: `commit-message` and `private-example` are offered.

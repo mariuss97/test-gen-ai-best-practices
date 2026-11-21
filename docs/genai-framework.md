@@ -16,7 +16,7 @@ Shared means: in the repo, checked in, applies to everyone.
 |------|----------|------|
 | Main instructions for everyone | `AGENTS.md` in the main folder | The only main file |
 | Instructions for one project | `<project>/AGENTS.md` | Lives next to the project's code |
-| Rules by file pattern | `.github/instructions/<topic>.instructions.md` with `applyTo` | `applyTo` is relative to the main folder |
+| Rules by file pattern | `.github/instructions/<topic>.instructions.md` with `applyTo` | `applyTo` is relative to the main folder. Example: `java-spring-boot.instructions.md` for `**/*.java` |
 | Skills | `.agents/skills/<name>/SKILL.md` | Folder name = `name` in the frontmatter |
 | Agents | `.github/agents/<name>.agent.md` | |
 | Hooks | `.github/hooks/` | |
@@ -63,6 +63,9 @@ example `git.path`. There is no private counterpart to `.vscode/settings.json`.
 - Agree on new external sources with the team first (procedure: see "Updating
   external skills"). Skills can bring scripts that run on the server.
 - Try new shared customizations privately first, then move them into the repo.
+- When you adapt third-party content (for example instructions from
+  `github/awesome-copilot`), name the source in the file and keep its license
+  in `docs/third-party-licenses/`.
 
 Superpowers lives in the repo as a copy and not as a plugin. This needs no
 setup, everyone has the same version, and every update is a reviewable diff.
