@@ -1,1 +1,6 @@
-.claude/settings.local.json
+# Private KI-Anpassungen gehören ins Home-Verzeichnis, siehe docs/genai-rahmen.md.
+# Claude-Dateien werden nicht eingecheckt.
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+__pycache__/

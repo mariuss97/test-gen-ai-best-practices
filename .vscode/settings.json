@@ -1,0 +1,5 @@
+{
+  // Lässt auch den eingebauten Agent-Modus die AGENTS.md in Projektordnern lesen (experimentell).
+  // Hier steht nur, was für alle im Team gleich sein muss; private Einstellungen gehören ins Home.
+  "chat.useNestedAgentsMdFiles": true
+}
