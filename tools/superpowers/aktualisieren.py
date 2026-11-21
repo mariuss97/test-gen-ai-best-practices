@@ -12,11 +12,18 @@ Skript erneuert.
 Aufruf: python3 tools/superpowers/aktualisieren.py [VERSION] [--pruefen]
                                                    [--quelle URL] [--ziel PFAD]
 Exit-Codes: 0 = erledigt bzw. aktuell, 1 = neuere Version verfügbar
-(nur bei --pruefen), 2 = Fehler (nichts verändert).
+(nur bei --pruefen), 2 = Fehler.
+
+Bei Fehlern vor dem Schreiben bleibt alles unverändert. Geschrieben wird über
+einen Staging-Ordner neben dem Ziel; scheitert der Tausch, wird zurückgerollt.
+Gelingt auch das nicht, sagt die Fehlermeldung ehrlich, dass das Repo teilweise
+geändert sein kann, und nennt den Weg zurück (`git restore`).
 """
 
 import argparse
 import json
+import os
+import re
 import shutil
 import subprocess
 import sys
@@ -27,6 +34,63 @@ QUELLE = "https://github.com/obra/superpowers.git"
 STAND = "tools/superpowers/stand.json"
 LIZENZ = "tools/superpowers/LICENSE"
 SKILLS = ".agents/skills"
+NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+WEG_ZURUECK = ("Das Repo kann teilweise geändert sein. Zurück geht es mit "
+               "`git restore -- .agents/skills tools/superpowers`; mit `git status` "
+               "neue, nicht versionierte Ordner prüfen.")
+
+
+def _verschieben(quelle, ziel):
+    os.rename(quelle, ziel)
+
+
+def _pruefe_namen(namen, woher):
+    for n in namen:
+        if not isinstance(n, str) or not NAME.fullmatch(n):
+            raise ValueError(f"Ungültiger Skill-Name in {woher}: {n!r} "
+                             "(erlaubt: Kleinbuchstaben, Ziffern, Bindestriche).")
+
+
+def _tauschen(ziel: Path, klon: Path, alt, neu, stand_text):
+    """Neue Kopie in Staging vorbereiten, dann tauschen; bei Fehler zurückrollen."""
+    skills = ziel / SKILLS
+    skills.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=".staging-", dir=ziel / ".agents"))
+    erledigt = []  # Rückgängig-Liste: (von, nach)
+
+    def bewegen(von, nach):
+        _verschieben(von, nach)
+        erledigt.append((von, nach))
+
+    try:
+        try:
+            for name in neu:
+                shutil.copytree(klon / "skills" / name, staging / "neu" / name)
+            shutil.copy2(klon / "LICENSE", staging / "LICENSE")
+            (staging / "stand.json").write_text(stand_text, encoding="utf-8")
+            (staging / "alt").mkdir()
+            (ziel / LIZENZ).parent.mkdir(parents=True, exist_ok=True)
+            for name in alt:
+                if (skills / name).exists():
+                    bewegen(skills / name, staging / "alt" / name)
+            for name in neu:
+                bewegen(staging / "neu" / name, skills / name)
+            for datei, pfad in (("LICENSE", ziel / LIZENZ), ("stand.json", ziel / STAND)):
+                if pfad.exists():
+                    bewegen(pfad, staging / "alt" / ("datei-" + datei))
+                bewegen(staging / datei, pfad)
+        except BaseException as fehler:
+            gescheitert = []
+            for von, nach in reversed(erledigt):
+                try:
+                    _verschieben(nach, von)
+                except OSError as e:
+                    gescheitert.append(f"{nach}: {e}")
+            if gescheitert:
+                raise OSError(f"{fehler}. Zurückrollen unvollständig. {WEG_ZURUECK}") from fehler
+            raise
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
 
 
 def _git(*args):
@@ -83,6 +147,8 @@ def aktualisieren(ziel: Path, quelle: str = QUELLE, version: str | None = None) 
         if not (klon / "LICENSE").is_file():
             raise ValueError(f"Keine LICENSE in {version} gefunden.")
         alt = _alter_stand(ziel).get("skills", [])
+        _pruefe_namen(alt, STAND)
+        _pruefe_namen(neu, f"{version}/skills")
 
         # Erst alles prüfen ...
         konflikte = [n for n in neu if (ziel / SKILLS / n).exists() and n not in alt]
@@ -91,16 +157,9 @@ def aktualisieren(ziel: Path, quelle: str = QUELLE, version: str | None = None) 
                 "Eigene Skills mit gleichem Namen vorhanden, Abbruch: " + ", ".join(konflikte)
             )
 
-        # ... dann schreiben.
-        for name in alt:
-            shutil.rmtree(ziel / SKILLS / name, ignore_errors=True)
-        (ziel / SKILLS).mkdir(parents=True, exist_ok=True)
-        for name in neu:
-            shutil.copytree(klon / "skills" / name, ziel / SKILLS / name)
-        (ziel / LIZENZ).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(klon / "LICENSE", ziel / LIZENZ)
+        # ... dann schreiben (Staging, Tausch, Rollback).
         stand = {"quelle": quelle, "version": version, "commit": commit, "skills": neu}
-        (ziel / STAND).write_text(json.dumps(stand, indent=2) + "\n", encoding="utf-8")
+        _tauschen(ziel, klon, alt, neu, json.dumps(stand, indent=2) + "\n")
     return stand
 
 

@@ -6,6 +6,7 @@ import os
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from tests.hilfen import REPO
@@ -123,6 +124,55 @@ class SuperpowersTest(unittest.TestCase):
         code = self._fehler(["v1.0.0", "--quelle", self.quelle, "--ziel", str(self.ziel)])
         self.assertEqual(code, 2)
         self.assertEqual(schnappschuss(self.ziel), davor)
+
+    def _stand_mit(self, skills):
+        pfad = self.ziel / "tools/superpowers/stand.json"
+        pfad.parent.mkdir(parents=True, exist_ok=True)
+        pfad.write_text(json.dumps({"version": "v0.0.1", "skills": skills}))
+
+    def test_invalid_old_skill_names_abort_without_changes(self):
+        for name in ["../..", ""]:
+            with self.subTest(name=name):
+                self._stand_mit([name])
+                davor = schnappschuss(self.ziel)
+                code = self._fehler(["v1.0.0", "--quelle", self.quelle, "--ziel", str(self.ziel)])
+                self.assertEqual(code, 2)
+                self.assertEqual(schnappschuss(self.ziel), davor)
+
+    def _fehler_im_tausch(self, ab_aufruf, nur_einmal):
+        aktualisieren(self.ziel, self.quelle, "v1.0.0")
+        davor = schnappschuss(self.ziel)
+        echt = _MODUL._verschieben
+        zaehler = {"n": 0}
+
+        def kaputt(von, nach):
+            zaehler["n"] += 1
+            if zaehler["n"] == ab_aufruf or (not nur_einmal and zaehler["n"] > ab_aufruf):
+                raise OSError("simulierter Fehler")
+            echt(von, nach)
+
+        import contextlib
+        import io
+        with mock.patch.object(_MODUL, "_verschieben", kaputt), \
+                contextlib.redirect_stderr(io.StringIO()) as err:
+            code = main(["v1.10.0", "--quelle", self.quelle, "--ziel", str(self.ziel)])
+        return code, davor, err.getvalue()
+
+    def _kein_staging(self):
+        reste = [p.name for p in (self.ziel / ".agents").iterdir() if p.name.startswith(".staging")]
+        self.assertEqual(reste, [])
+
+    def test_write_failure_rolls_back_and_leaves_no_staging(self):
+        code, davor, _ = self._fehler_im_tausch(ab_aufruf=5, nur_einmal=True)
+        self.assertEqual(code, 2)
+        self.assertEqual(schnappschuss(self.ziel), davor)
+        self._kein_staging()
+
+    def test_failed_rollback_message_names_git_restore(self):
+        code, _, meldung = self._fehler_im_tausch(ab_aufruf=5, nur_einmal=False)
+        self.assertEqual(code, 2)
+        self.assertIn("git restore", meldung)
+        self._kein_staging()
 
     def test_unknown_version_aborts_without_changes(self):
         davor = schnappschuss(self.ziel)
