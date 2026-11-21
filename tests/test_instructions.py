@@ -25,6 +25,13 @@ class InstructionsTest(unittest.TestCase):
         self.assertEqual(fm["applyTo"], "**/*.java")
         self.assertTrue(fm["description"])
 
+    def test_spring_boot_instructions_name_the_target_stack(self):
+        text = (REPO / ".github/instructions/java-spring-boot.instructions.md").read_text(encoding="utf-8")
+        for fact in ["Spring Boot 4.1.1", "Java 21", "21.0.9", "tools.jackson", "@MockitoBean",
+                     "spring-boot-starter-webmvc", "org.jspecify.annotations.Nullable"]:
+            self.assertIn(fact, text)
+        self.assertNotIn("JUnit 5", text)
+
     def test_spring_boot_instructions_credit_their_source(self):
         text = (REPO / ".github/instructions/java-spring-boot.instructions.md").read_text(encoding="utf-8")
         self.assertIn("https://github.com/github/awesome-copilot", text)

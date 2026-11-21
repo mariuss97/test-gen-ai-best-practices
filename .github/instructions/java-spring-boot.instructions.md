@@ -9,6 +9,44 @@ Apply these rules only when the project uses Spring Boot. In a monorepo with
 non-Spring Java projects, narrow `applyTo` to the backend folders, for example
 `"projects/backend-*/**/*.java"`.
 
+## Target stack
+
+- Java 21 (21.0.9). Spring Boot 4.1.1, which brings Spring Framework 7,
+  Jakarta EE 11 (Servlet 6.1), Spring Security 7, Hibernate ORM 7 and
+  Jackson 3.
+- Use the dependency versions managed by the Spring Boot BOM. Do not pin
+  versions of managed dependencies. Keep the Spring Boot version in one place
+  (parent, BOM property or version catalog).
+- Write code for Spring Boot 4. Do not suggest Spring Boot 2 or 3 APIs or
+  `javax.*` imports; use `jakarta.*`.
+
+## Java 21
+
+- Use modern language features where they make code clearer: records for DTOs
+  and value objects, pattern matching for `instanceof` and `switch`, switch
+  expressions, text blocks, sequenced collections.
+- Do not use preview features.
+- Virtual threads (`spring.threads.virtual.enabled=true`) suit blocking I/O
+  workloads. Enable them only as a deliberate team decision, not per class.
+
+## Spring Boot 4 specifics
+
+- Use the technology-specific starters, for example
+  `spring-boot-starter-webmvc` instead of the deprecated alias
+  `spring-boot-starter-web`. Tests need the matching `spring-boot-starter-*-test`
+  module, for example `spring-boot-starter-webmvc-test`.
+- Jackson 3 lives in `tools.jackson.*` (group `tools.jackson`). Only the
+  annotations stay in `com.fasterxml.jackson.annotation`. Use
+  `JsonMapperBuilderCustomizer` and `@JacksonComponent` instead of
+  `Jackson2ObjectMapperBuilderCustomizer` and `@JsonComponent`.
+- Mark nullability with JSpecify: `org.jspecify.annotations.Nullable`, not
+  `org.springframework.lang.Nullable` or `javax.annotation.*`. Values such as
+  `RestClient` response bodies can be null; check them.
+- Use `RestClient` or HTTP interface clients (`@HttpExchange`) for outgoing
+  HTTP calls. Do not use `RestTemplate` in new code.
+- Use the retry support in Spring Framework 7 instead of adding Spring Retry.
+- Use Tomcat (default) or Jetty. Undertow is no longer supported.
+
 ## General
 
 - Make only high-confidence suggestions when reviewing code changes.
@@ -85,9 +123,19 @@ non-Spring Java projects, narrow `applyTo` to the backend folders, for example
 
 ## Testing
 
-- Write tests with JUnit 5 and AssertJ.
+- Write tests with JUnit Jupiter (version managed by the Spring Boot BOM) and
+  AssertJ.
 - Prefer slice tests: `@WebMvcTest` for controllers, `@DataJpaTest` for
-  repositories. Use `@SpringBootTest` only for real integration tests.
+  repositories. Use `@SpringBootTest` only for real integration tests. In
+  Spring Boot 4 the slice annotations live in per-technology packages, for
+  example `org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest` and
+  `org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest`.
+- Mock Spring beans with `@MockitoBean` and `@MockitoSpyBean`. `@MockBean` and
+  `@SpyBean` were removed in Spring Boot 4. Plain Mockito `@Mock` fields need
+  `@ExtendWith(MockitoExtension.class)`.
+- `@SpringBootTest` no longer provides `TestRestTemplate` or `WebTestClient`
+  automatically. Add `@AutoConfigureMockMvc` (package
+  `org.springframework.boot.webmvc.test.autoconfigure`) for MockMvc.
 - Run integration tests against real dependencies with Testcontainers, for
   example the same database as in production.
 - Name integration tests `*IT`, so Maven Failsafe runs them in `verify`.
@@ -97,7 +145,8 @@ non-Spring Java projects, narrow `applyTo` to the backend folders, for example
 - After adding or changing code, check that the project still builds.
 - Maven: run `./mvnw verify` (use the wrapper). `package` skips Failsafe
   integration tests (`*IT`).
-- Gradle: run `./gradlew build`.
+- Gradle: run `./gradlew build`. The Spring Boot 4 Gradle plugin needs
+  Gradle 8.14 or later.
 - All tests must pass as part of the build.
 - Use `package` or `test` only as faster, focused commands, not as the final
   check.
@@ -113,8 +162,10 @@ non-Spring Java projects, narrow `applyTo` to the backend folders, for example
 | `./gradlew bootBuildImage` | `./mvnw spring-boot:build-image` | Package the application as a container image |
 
 <!--
-Based on instructions/springboot.instructions.md from
-https://github.com/github/awesome-copilot (commit 942a83b0a080, 2026-10-14),
+Based on instructions/springboot.instructions.md (commit 942a83b0a080,
+2026-10-14) and the references of skills/spring-boot-4-migration (commit
+f65ff3955a6b, 2026-10-22) from https://github.com/github/awesome-copilot,
 adapted and extended for this team. Copyright GitHub, Inc., MIT license, see
-docs/third-party-licenses/awesome-copilot-LICENSE.
+docs/third-party-licenses/awesome-copilot-LICENSE. Official sources: the
+Spring Boot 4.0 Migration Guide and Release Notes on the Spring Boot wiki.
 -->
