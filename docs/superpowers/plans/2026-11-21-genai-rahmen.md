@@ -33,7 +33,7 @@ Struktur.
 - Private Dateien liegen nie im Repo. Nur `~/.agents/skills/privat-beispiel/` wird außerhalb des Repos angelegt.
 - Skill-Ordnername = `name` im Frontmatter: Kleinbuchstaben, Ziffern und Bindestriche.
 - Werkzeuge des Agents `reviewer`: nur `read` und `search` (Werkzeugsets, die VS Code 1.147 und Copilot kennen).
-- Superpowers: Quelle `https://github.com/obra/superpowers.git`, Startversion `v7.0.2` (Commit `c62ffea8267a70de07583e153544d355b6748a56`), alle 15 Skills unverändert kopieren. Superpowers-Dateien nur über das Skript ändern, nie von Hand.
+- Superpowers: Quelle `https://github.com/obra/superpowers.git`, Startversion `v7.0.2` (Commit `22f0b463e7a5e579904dd6211a520321035526f7`), alle 15 Skills unverändert kopieren. Superpowers-Dateien nur über das Skript ändern, nie von Hand.
 - Kein `.github/copilot/settings.json` und keine Plugin-Empfehlung (durch die Kopie ersetzt).
 - Tests laufen mit: `python3 -m unittest discover -s tests -v`. Nur der eine Schritt, der Superpowers wirklich holt, braucht Netz. Die Tests selbst laufen ohne Netz.
 - Commit-Nachrichten: `<bereich>: <Beschreibung im Imperativ>`, endend mit `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
@@ -470,7 +470,7 @@ def test_pruefen_reports_newer_version(self):
 
 def test_repo_copy_matches_stand(self):
     # im echten REPO: stand.json version == "v7.0.2",
-    # commit == "c62ffea8267a70de07583e153544d355b6748a56", 15 skills,
+    # commit == "22f0b463e7a5e579904dd6211a520321035526f7", 15 skills,
     # jeder als .agents/skills/<name>/SKILL.md vorhanden, tools/superpowers/LICENSE vorhanden
 ```
 

@@ -150,7 +150,7 @@ Weitere Fakten:
   auf GitHub oder ein Git-Repo zeigen. Ein Ordner im Repo selbst geht nicht
   (Quelle: `marketplaceReference.ts`).
 - **Superpowers-Repo:** `https://github.com/obra/superpowers`, Lizenz MIT,
-  Versionen als Tags (`v7.0.2` = Commit `c62ffea8267a70de07583e153544d355b6748a56`).
+  Versionen als Tags (`v7.0.2` = Commit `22f0b463e7a5e579904dd6211a520321035526f7`).
   Unter `skills/` liegen 15 Skills. Jeder ist ein Ordner mit `SKILL.md`, der
   Dateikopf enthält nur `name` (= Ordnername) und `description`. Einige
   Ordner enthalten Skripte. Dazu kommt ein Hook (`hooks/session-start`), der
