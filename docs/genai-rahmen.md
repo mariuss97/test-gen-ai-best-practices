@@ -155,7 +155,7 @@ die Lizenzen liegen unter `tools/fremde-skills/lizenzen/<quelle>/`.
 | Alle Quellen auf die neueste Version bringen | `python3 tools/fremde-skills/aktualisieren.py` |
 | Eine Quelle auf die neueste Version bringen | `python3 tools/fremde-skills/aktualisieren.py superpowers` |
 | Eine Quelle auf eine feste Version bringen | `python3 tools/fremde-skills/aktualisieren.py superpowers v7.0.3` |
-| Änderungen ansehen | `git diff --stat` |
+| Änderungen ansehen | `git status` (neue Ordner) und `git diff --stat` |
 | Release-Notes lesen | [Superpowers auf GitHub](https://github.com/obra/superpowers) |
 | Ins Team geben | Committen und Pull Request öffnen |
 
@@ -170,7 +170,10 @@ Ordner oder wie ein Skill einer anderen Quelle heißt.
 2. Einen Eintrag in `tools/fremde-skills/quellen.json` anlegen. Der Name der
    Quelle besteht aus Kleinbuchstaben, Ziffern und Bindestrichen.
 3. `python3 tools/fremde-skills/aktualisieren.py <name>` ausführen.
-4. Mit `git diff --stat` und `git diff` prüfen, was neu im Repo liegt.
+4. Mit `git status` prüfen, welche Ordner neu sind. Neue Skills sind noch nicht
+   versioniert und fehlen deshalb in `git diff`. Darum zuerst
+   `git add .github/skills tools/fremde-skills`, dann mit
+   `git diff --cached --stat` ansehen, was ins Repo kommt.
 5. Committen und Pull Request öffnen.
 
 Je Quelle gibt es diese Schlüssel:

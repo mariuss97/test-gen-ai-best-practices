@@ -242,7 +242,7 @@ Einrichtung, und Updates bleiben im Repo nachvollziehbar.
 | MCP-Server | `.mcp.json` im Hauptordner | Format `mcpServers`. Keine Geheimnisse eintragen. Nur Server, deren Laufzeit für alle auf dem Server systemweit verfügbar ist. |
 | Editor-Einstellungen | `.vscode/settings.json` | Nur, was für alle gleich sein muss. |
 | Empfohlene Erweiterungen | `.vscode/extensions.json` | |
-| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills, Stand in `tools/superpowers/stand.json` | Nie von Hand ändern, nur über `tools/superpowers/aktualisieren.py`. |
+| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills, Stand in `tools/fremde-skills/stand.json` | Nie von Hand ändern, nur über `tools/fremde-skills/aktualisieren.py`. |
 | Debug-Konfigurationen | `.vscode/launch.json` | Unverändert wie bisher, nicht Teil der Demo. |
 
 ### Privat: im Home auf dem Linux-Rechner
@@ -288,9 +288,9 @@ gehören.
 | `.mcp.json` (neu) | Meldet den Remote-MCP-Server von Azure DevOps an: Name `azure-devops`, `type: http`, URL `https://mcp.dev.azure.com/gmhgruppe`. Keine Laufzeit auf dem Server nötig, Anmeldung per Microsoft Entra ID in VS Code. | „MCP: List Servers“ zeigt `azure-devops`. Nach der Anmeldung liefert eine Frage nach den Projekten von `gmhgruppe` Ergebnisse. |
 | `.vscode/settings.json` (neu) | `chat.useNestedAgentsMdFiles: true`, mit Kommentar warum. Sonst nichts. | Einstellung ist im Workspace-Tab gesetzt. |
 | `.vscode/extensions.json` (neu) | Empfiehlt die Copilot-Erweiterung. | Unter Erweiterungen „@recommended“. |
-| `tools/superpowers/aktualisieren.py` (neu) | Holt eine Superpowers-Version per `git clone` (Standard: neuester Tag `v*`) und ersetzt nur die Ordner, die in `stand.json` stehen. Bricht ohne Änderung ab, wenn ein neuer Skill wie ein eigener Ordner heißt oder das Holen scheitert. `--pruefen` meldet, ob es eine neuere Version gibt. Nur Standardbibliothek und `git`. | `python3 tools/superpowers/aktualisieren.py --pruefen` meldet „aktuell“. |
-| `tools/superpowers/stand.json` (neu, vom Skript geschrieben) | Quelle, Version, Commit, Liste der kopierten Skill-Ordner. | Steht auf `v7.0.2`. |
-| `tools/superpowers/LICENSE` (neu, vom Skript kopiert) | MIT-Lizenz von Superpowers, Pflicht bei Kopien. | |
+| `tools/fremde-skills/aktualisieren.py` (neu) | Holt eine Superpowers-Version per `git clone` (Standard: neuester Tag `v*`) und ersetzt nur die Ordner, die in `stand.json` stehen. Bricht ohne Änderung ab, wenn ein neuer Skill wie ein eigener Ordner heißt oder das Holen scheitert. `--pruefen` meldet, ob es eine neuere Version gibt. Nur Standardbibliothek und `git`. | `python3 tools/fremde-skills/aktualisieren.py --pruefen` meldet „aktuell“. |
+| `tools/fremde-skills/stand.json` (neu, vom Skript geschrieben) | Quelle, Version, Commit, Liste der kopierten Skill-Ordner. | Steht auf `v7.0.2`. |
+| `tools/fremde-skills/lizenzen/superpowers/LICENSE` (neu, vom Skript kopiert) | MIT-Lizenz von Superpowers, Pflicht bei Kopien. | |
 | `.github/skills/<15 Superpowers-Skills>/` (neu, vom Skript kopiert) und `.github/skills/README.md` | Die Skills von Superpowers `v7.0.2`, unverändert. | Erscheinen unter „Skills“ als Workspace-Skills; `/brainstorming` ist aufrufbar. |
 | `.gitignore` (geändert) | Siehe oben. | |
 | `docs/genai-rahmen.md` (neu) | Anleitung für das Team, allgemein gehalten, siehe unten. | |
@@ -355,8 +355,8 @@ Beispiel. Inhalt:
    | Privates in `~/.copilot/…`, `~/.agents/skills/` | `~/.claude/…` | verschieben |
 
 7. **Superpowers aktualisieren:**
-   - Prüfen: `python3 tools/superpowers/aktualisieren.py --pruefen`
-   - Aktualisieren: `python3 tools/superpowers/aktualisieren.py` (neueste
+   - Prüfen: `python3 tools/fremde-skills/aktualisieren.py --pruefen`
+   - Aktualisieren: `python3 tools/fremde-skills/aktualisieren.py` (neueste
      Version) oder mit Versionsangabe, z. B. `… v7.0.3`
    - Danach `git diff --stat` ansehen, die Release-Notes von Superpowers lesen,
      committen und per Pull Request ins Team geben.
@@ -381,7 +381,7 @@ Beispiel. Inhalt:
 8. Superpowers: „Chat: Open Customizations“ zeigt die Superpowers-Skills
    (z. B. `brainstorming`, `writing-plans`) als Workspace-Skills, und im Chat
    ist `/brainstorming` aufrufbar. Im Terminal meldet
-   `python3 tools/superpowers/aktualisieren.py --pruefen` den Stand.
+   `python3 tools/fremde-skills/aktualisieren.py --pruefen` den Stand.
 9. Punkte 2 bis 6 und 8 in beiden Agent-Modi wiederholen, soweit die Auswahl
    angeboten wird.
 10. Im Terminal `git status`: Der private Skill, `CLAUDE.md` und `.claude/`

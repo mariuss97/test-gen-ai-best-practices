@@ -6,7 +6,7 @@ Skills landen flach in `.github/skills/`, getrennt von den eigenen Skills in
 `.agents/skills/`. Version und Commit je Quelle stehen in
 `tools/fremde-skills/stand.json` (nur vom Skript geschrieben), die Lizenzen in
 `tools/fremde-skills/lizenzen/<quelle>/LICENSE`. Ein Update läuft bewusst von
-Hand: Skript starten, mit `git diff --stat` prüfen, committen.
+Hand: Skript starten, mit `git status` und `git diff --stat` prüfen, committen.
 
 Optionale Schlüssel je Quelle in `quellen.json`: `pfad` (Standard `skills`),
 `lizenz` (Standard `LICENSE`), `nur` (nur diese Skills übernehmen) und
@@ -293,7 +293,7 @@ def main(argv: list[str] | None = None) -> int:
             stand = aktualisieren(args.ziel, name, args.version)
             fertig.append(name)
             print(f"{name} {stand['version']} kopiert ({len(stand['skills'])} Skills). "
-                  "Mit `git diff --stat` prüfen.")
+                  "Mit `git status` und `git diff --stat` prüfen.")
     except (ValueError, OSError, subprocess.CalledProcessError) as fehler:
         meldung = getattr(fehler, "stderr", None) or fehler
         print(f"Fehler: {str(meldung).strip()}", file=sys.stderr)
