@@ -1,0 +1,8 @@
+# Private AI customizations belong in the home directory, see docs/genai-framework.md.
+# Claude files are not checked in.
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+__pycache__/
+# Superpowers brainstorming stores session data here.
+.superpowers/
