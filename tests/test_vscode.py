@@ -18,7 +18,7 @@ class VSCodeTest(unittest.TestCase):
 
     def test_gitignore_entries(self):
         lines = (REPO / ".gitignore").read_text(encoding="utf-8").splitlines()
-        for entry in ["CLAUDE.md", "CLAUDE.local.md", ".claude/"]:
+        for entry in ["CLAUDE.md", "CLAUDE.local.md", ".claude/", ".superpowers/"]:
             self.assertIn(entry, lines)
 
     def test_claude_files_ignored_and_untracked(self):

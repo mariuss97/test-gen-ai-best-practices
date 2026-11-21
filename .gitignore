@@ -4,3 +4,5 @@ CLAUDE.md
 CLAUDE.local.md
 .claude/
 __pycache__/
+# Superpowers-Brainstorming legt hier Sitzungsdaten an.
+.superpowers/

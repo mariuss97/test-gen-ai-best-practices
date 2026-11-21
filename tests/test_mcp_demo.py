@@ -65,6 +65,7 @@ class McpDemoTest(unittest.TestCase):
         env = {k: v for k, v in os.environ.items() if k != "PYTHONIOENCODING"}
         env["LANG"] = "C"
         env["LC_ALL"] = "C"
+        env["PYTHONUTF8"] = "0"  # Python 3.10 schaltet sonst bei LC_ALL=C in den UTF-8-Modus
         [r] = run_server([anfrage(3, "tools/call", {"name": "demo_gruss", "arguments": {}})], env=env)
         self.assertEqual(r["result"]["content"], [{"type": "text", "text": GRUSS}])
         self.assertIs(r["result"]["isError"], False)
