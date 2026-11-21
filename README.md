@@ -17,7 +17,7 @@ liegen. Die Anleitung für das Team steht in
 | `.mcp.json` | Meldet den Azure-DevOps-MCP-Server `azure-devops` an (Remote-Server `https://mcp.dev.azure.com/gmhgruppe`) |
 | `.vscode/settings.json` | `chat.useNestedAgentsMdFiles: true` |
 | `.vscode/extensions.json` | Empfiehlt GitHub Copilot (`github.copilot-chat`) |
-| `.agents/skills/` (15 Skills) | Kopie von Superpowers v7.0.2 |
+| `.github/skills/` (15 Skills und `README.md`) | Fremde Skills: Kopie von Superpowers v7.0.2, getrennt von den eigenen in `.agents/skills/` |
 | `tools/superpowers/` | Update-Skript, `stand.json`, Lizenz |
 | `.gitignore` | Hält Claude-Dateien aus dem Repo |
 | `docs/genai-rahmen.md` | Anleitung für das Team |

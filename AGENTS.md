@@ -17,6 +17,7 @@ verwaltet.
 Prüfe vor jeder Aufgabe, ob ein Skill passt. Lies dafür zuerst den Skill
 `using-superpowers`.
 
-Die Superpowers-Skills unter `.agents/skills/` änderst du nicht von Hand.
+Eigene Skills liegen in `.agents/skills/`, fremde Skills in `.github/skills/`.
+Die Superpowers-Skills unter `.github/skills/` änderst du nicht von Hand.
 Sie kommen über ein Skript ins Repo (siehe `tools/superpowers/stand.json`).
-`superpowers:<name>` in den Superpowers-Skills meint den Skill `<name>` unter `.agents/skills/`.
+`superpowers:<name>` in den Superpowers-Skills meint den Skill `<name>` unter `.github/skills/`.

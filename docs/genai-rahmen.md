@@ -23,7 +23,7 @@ Geteilt heißt: im Repo, eingecheckt, gilt für alle.
 | MCP-Server | `.mcp.json` im Hauptordner | Format `mcpServers` |
 | Editor-Einstellungen | `.vscode/settings.json` | Nur, was für alle gleich sein muss |
 | Empfohlene Erweiterungen | `.vscode/extensions.json` | Schlägt nur vor, installiert nichts |
-| Fremde Skills (Superpowers) | `.agents/skills/<name>/` als Kopie | Stand in `tools/superpowers/stand.json` |
+| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills in `.agents/skills/` | Stand in `tools/superpowers/stand.json` |
 
 Privat heißt: im Home-Verzeichnis auf dem Linux-Rechner. VS Code löst `~` in
 einem Remote-Fenster auf dem Server auf. Private Dateien liegen also pro
@@ -78,7 +78,7 @@ Prüfe vor jeder Aufgabe, ob ein Skill passt. Lies dafür zuerst den Skill
 `using-superpowers`.
 ```
 
-`superpowers:<name>` in den Superpowers-Skills meint den Skill `<name>` unter `.agents/skills/`. Diesen Satz nimmst du am besten ebenfalls in die `AGENTS.md` auf.
+`superpowers:<name>` in den Superpowers-Skills meint den Skill `<name>` unter `.github/skills/`. Diesen Satz nimmst du am besten ebenfalls in die `AGENTS.md` auf.
 
 ## Private Ordner anlegen
 
@@ -112,7 +112,7 @@ Demo-Dateien im README des Demo-Repos.
 | `.github/copilot-instructions.md` | Inhalt in `AGENTS.md` übernehmen, Datei löschen. Sonst laden beide, und Inhalte doppeln sich |
 | `.github/prompts/*.prompt.md` | In Skills unter `.agents/skills/` umwandeln |
 | `.github/chatmodes/*.chatmode.md` | Als `.agent.md` nach `.github/agents/` verschieben |
-| `.github/skills/` | Nach `.agents/skills/` verschieben |
+| `.github/skills/` mit eigenen Skills | Nach `.agents/skills/` verschieben. `.github/skills/` ist für fremde Skills reserviert |
 | `.vscode/mcp.json` | Von Hand nach `.mcp.json` übertragen (`servers` wird zu `mcpServers`), dann die alte Datei löschen. VS Code 1.147 bietet dafür keinen Befehl |
 | KI-Einstellungen in `.vscode/settings.json` | Prüfen, ob sie für alle gelten sollen. Persönliches in die Remote-Einstellungen verschieben |
 
@@ -125,7 +125,7 @@ wie sie sind. Für später gilt diese Übertragung:
 | Teil | Für Claude Code | Aufwand |
 |------|-----------------|---------|
 | `AGENTS.md` im Hauptordner | `CLAUDE.md` mit `@AGENTS.md`, dann aus `.gitignore` nehmen | keiner |
-| Superpowers-Kopie in `.agents/skills/` | Zieht mit den anderen Skills nach `.claude/skills/` um (Zielordner im Skript anpassen). Oder Claude Code installiert das Plugin selbst | klein |
+| Superpowers-Kopie in `.github/skills/` | Zieht mit den anderen Skills nach `.claude/skills/` um (Zielordner im Skript anpassen). Oder Claude Code installiert das Plugin selbst | klein |
 | `.mcp.json` | Liest Claude Code direkt. Der Remote-Server von Azure DevOps braucht dort aber eine eigene App-Registrierung in Entra ID | klein |
 | Skills in `.agents/skills/` | Gleiches Format, aber Claude Code sucht nur in `.claude/skills/`. Ordner verschieben, nicht verlinken, sonst zeigt VS Code jeden Skill doppelt | klein |
 | `AGENTS.md` pro Projekt | Je Projekt eine `CLAUDE.md` mit `@AGENTS.md` | klein |

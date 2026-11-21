@@ -5,7 +5,8 @@ Nachträge am selben Tag, ebenfalls freigegeben: Claude-Dateien kommen nicht ins
 Repo. Die Skills von Superpowers liegen als Kopie im Repo und werden per Skript
 aktualisiert. Diese Kopie ersetzt die zwischenzeitlich geplante
 Plugin-Empfehlung. Außerdem ersetzt der Remote-MCP-Server von Azure DevOps
-(Organisation `gmhgruppe`) den Demo-MCP-Server.
+(Organisation `gmhgruppe`) den Demo-MCP-Server. Fremde Skills liegen getrennt
+von den eigenen in `.github/skills/` (eigene weiter in `.agents/skills/`).
 
 ## Absicht
 
@@ -239,7 +240,7 @@ Einrichtung, und Updates bleiben im Repo nachvollziehbar.
 | MCP-Server | `.mcp.json` im Hauptordner | Format `mcpServers`. Keine Geheimnisse eintragen. Nur Server, deren Laufzeit für alle auf dem Server systemweit verfügbar ist. |
 | Editor-Einstellungen | `.vscode/settings.json` | Nur, was für alle gleich sein muss. |
 | Empfohlene Erweiterungen | `.vscode/extensions.json` | |
-| Fremde Skills (Superpowers) | `.agents/skills/<name>/` als Kopie, Stand in `tools/superpowers/stand.json` | Nie von Hand ändern, nur über `tools/superpowers/aktualisieren.py`. |
+| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills, Stand in `tools/superpowers/stand.json` | Nie von Hand ändern, nur über `tools/superpowers/aktualisieren.py`. |
 | Debug-Konfigurationen | `.vscode/launch.json` | Unverändert wie bisher, nicht Teil der Demo. |
 
 ### Privat: im Home auf dem Linux-Rechner
@@ -288,7 +289,7 @@ gehören.
 | `tools/superpowers/aktualisieren.py` (neu) | Holt eine Superpowers-Version per `git clone` (Standard: neuester Tag `v*`) und ersetzt nur die Ordner, die in `stand.json` stehen. Bricht ohne Änderung ab, wenn ein neuer Skill wie ein eigener Ordner heißt oder das Holen scheitert. `--pruefen` meldet, ob es eine neuere Version gibt. Nur Standardbibliothek und `git`. | `python3 tools/superpowers/aktualisieren.py --pruefen` meldet „aktuell“. |
 | `tools/superpowers/stand.json` (neu, vom Skript geschrieben) | Quelle, Version, Commit, Liste der kopierten Skill-Ordner. | Steht auf `v7.0.2`. |
 | `tools/superpowers/LICENSE` (neu, vom Skript kopiert) | MIT-Lizenz von Superpowers, Pflicht bei Kopien. | |
-| `.agents/skills/<15 Superpowers-Skills>/` (neu, vom Skript kopiert) | Die Skills von Superpowers `v7.0.2`, unverändert. | Erscheinen unter „Skills“ als Workspace-Skills; `/brainstorming` ist aufrufbar. |
+| `.github/skills/<15 Superpowers-Skills>/` (neu, vom Skript kopiert) und `.github/skills/README.md` | Die Skills von Superpowers `v7.0.2`, unverändert. | Erscheinen unter „Skills“ als Workspace-Skills; `/brainstorming` ist aufrufbar. |
 | `.gitignore` (geändert) | Siehe oben. | |
 | `docs/genai-rahmen.md` (neu) | Anleitung für das Team, allgemein gehalten, siehe unten. | |
 | `README.md` (geändert) | Kurz: was eingerichtet ist, Link zur Anleitung, und die Prüfliste für die Demo-Dateien (siehe unten). | |
@@ -332,7 +333,7 @@ Beispiel. Inhalt:
    | `.github/copilot-instructions.md` | Inhalt in `AGENTS.md` übernehmen, Datei löschen. Sonst laden beide, und Inhalte doppeln sich. |
    | `.github/prompts/*.prompt.md` | In Skills unter `.agents/skills/` umwandeln. |
    | `.github/chatmodes/*.chatmode.md` | Als `.agent.md` nach `.github/agents/` verschieben. |
-   | `.github/skills/` | Nach `.agents/skills/` verschieben. |
+   | `.github/skills/` mit eigenen Skills | Nach `.agents/skills/` verschieben. `.github/skills/` ist für fremde Skills reserviert. |
    | `.vscode/mcp.json` | Server nach `.mcp.json` übertragen (`servers` wird zu `mcpServers`), Datei löschen. |
    | KI-Einstellungen in `.vscode/settings.json` | Prüfen, ob sie für alle gelten sollen. Persönliches in die Remote-Einstellungen verschieben. |
 
@@ -342,7 +343,7 @@ Beispiel. Inhalt:
    | Teil | Für Claude Code | Aufwand |
    |------|-----------------|---------|
    | `AGENTS.md` im Hauptordner | `CLAUDE.md` mit `@AGENTS.md`, dann aus `.gitignore` nehmen | keiner |
-   | Superpowers-Kopie in `.agents/skills/` | zieht mit den anderen Skills nach `.claude/skills/` um (Zielordner im Skript anpassen), oder Claude Code installiert das Plugin selbst | klein |
+   | Superpowers-Kopie in `.github/skills/` | zieht mit den anderen Skills nach `.claude/skills/` um (Zielordner im Skript anpassen), oder Claude Code installiert das Plugin selbst | klein |
    | `.mcp.json` | liest Claude Code direkt | keiner |
    | Skills in `.agents/skills/` | gleiches Format, Claude Code sucht aber nur in `.claude/skills/` | Ordner verschieben (nicht verlinken, sonst zeigt VS Code jeden Skill doppelt) |
    | `AGENTS.md` pro Projekt | je Projekt eine `CLAUDE.md` mit `@AGENTS.md` | klein |
@@ -424,10 +425,11 @@ Diese Punkte habe ich festgelegt, sie wurden nicht ausdrücklich besprochen:
     `.gitignore` sind nur ein Sicherheitsnetz.
 13. Die Anleitung enthält eine Tabelle, wie man bestehende Copilot-Dateien im
     Monorepo übernimmt.
-14. Superpowers liegt als Kopie in `.agents/skills/` (Weg C1,
-    Nutzerentscheidung). Meine Festlegungen dazu: Alle 15 Skills werden
+14. Superpowers liegt als Kopie in `.github/skills/`, getrennt von den eigenen
+    Skills in `.agents/skills/` (Weg C1, Trennung per Nachtrag auf Wunsch des
+    Nutzers). Meine Festlegungen dazu: Alle 15 Skills werden
     kopiert, nichts wird ausgelassen. Das Skript ist in Python geschrieben und
     holt die Dateien per `git`. Der Stand steht in `tools/superpowers/`, nicht
-    in `.agents/skills/`. Die Lizenz wird mitkopiert. `AGENTS.md` ersetzt den
+    im Skill-Ordner. Die Lizenz wird mitkopiert. `AGENTS.md` ersetzt den
     Hook.
 15. Das README enthält keinen Abschnitt mehr zu Claude Code.

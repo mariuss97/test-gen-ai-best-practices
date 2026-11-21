@@ -1,5 +1,6 @@
 """Tests für geteilte Skills und den Agent reviewer."""
 
+import json
 import re
 import subprocess
 import unittest
@@ -9,7 +10,8 @@ from tests.hilfen import REPO, frontmatter
 
 class SkillsAgentsTest(unittest.TestCase):
     def test_skill_names_match_folders(self):
-        skills = sorted((REPO / ".agents/skills").glob("*/SKILL.md"))
+        skills = sorted([*(REPO / ".agents/skills").glob("*/SKILL.md"),
+                         *(REPO / ".github/skills").glob("*/SKILL.md")])
         self.assertTrue(skills)
         for s in skills:
             fm = frontmatter(s)
@@ -21,6 +23,14 @@ class SkillsAgentsTest(unittest.TestCase):
         text = (REPO / ".agents/skills/commit-nachricht/SKILL.md").read_text(encoding="utf-8")
         self.assertIn("<bereich>: <Beschreibung im Imperativ>", text)
         self.assertIn("Beispiel", text)
+
+    def test_own_and_external_skills_are_separate(self):
+        fremde = json.loads((REPO / "tools/superpowers/stand.json").read_text(encoding="utf-8"))["skills"]
+        eigene = sorted(p.parent.name for p in (REPO / ".agents/skills").glob("*/SKILL.md"))
+        in_github = sorted(p.parent.name for p in (REPO / ".github/skills").glob("*/SKILL.md"))
+        self.assertEqual(in_github, sorted(fremde))
+        self.assertFalse(set(eigene) & set(fremde))
+        self.assertIn("aktualisieren.py", (REPO / ".github/skills/README.md").read_text(encoding="utf-8"))
 
     def test_reviewer_is_read_only(self):
         fm = frontmatter(REPO / ".github/agents/reviewer.agent.md")

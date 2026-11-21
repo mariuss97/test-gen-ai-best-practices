@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Holt die Skills des Open-Source-Plugins Superpowers (MIT) als Kopie ins Repo.
 
-Die Skills landen in `.agents/skills/` neben den eigenen Skills. Version und
+Die Skills landen in `.github/skills/`, getrennt von den eigenen Skills in
+`.agents/skills/`. Version und
 Commit stehen in `tools/superpowers/stand.json`, die Lizenz in
 `tools/superpowers/LICENSE`. Ein Update läuft bewusst von Hand: Skript starten,
 mit `git diff --stat` prüfen, committen.
@@ -33,10 +34,11 @@ from pathlib import Path
 QUELLE = "https://github.com/obra/superpowers.git"
 STAND = "tools/superpowers/stand.json"
 LIZENZ = "tools/superpowers/LICENSE"
-SKILLS = ".agents/skills"
+SKILLS = ".github/skills"   # fremde Skills (nur dieses Skript schreibt hier)
+EIGENE = ".agents/skills"   # eigene Skills des Teams (werden nie angefasst)
 NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 WEG_ZURUECK = ("Das Repo kann teilweise geändert sein. Zurück geht es mit "
-               "`git restore -- .agents/skills tools/superpowers`; mit `git status` "
+               "`git restore -- .github/skills tools/superpowers`; mit `git status` "
                "neue, nicht versionierte Ordner prüfen.")
 
 
@@ -55,7 +57,7 @@ def _tauschen(ziel: Path, klon: Path, alt, neu, stand_text):
     """Neue Kopie in Staging vorbereiten, dann tauschen; bei Fehler zurückrollen."""
     skills = ziel / SKILLS
     skills.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix=".staging-", dir=ziel / ".agents"))
+    staging = Path(tempfile.mkdtemp(prefix=".staging-", dir=skills.parent))
     erledigt = []  # Rückgängig-Liste: (von, nach)
 
     def bewegen(von, nach):
@@ -151,10 +153,17 @@ def aktualisieren(ziel: Path, quelle: str = QUELLE, version: str | None = None) 
         _pruefe_namen(neu, f"{version}/skills")
 
         # Erst alles prüfen ...
-        konflikte = [n for n in neu if (ziel / SKILLS / n).exists() and n not in alt]
-        if konflikte:
+        eigene = [n for n in neu if (ziel / EIGENE / n).exists()]
+        if eigene:
             raise ValueError(
-                "Eigene Skills mit gleichem Namen vorhanden, Abbruch: " + ", ".join(konflikte)
+                f"Eigene Skills in {EIGENE} mit gleichem Namen vorhanden, Abbruch: "
+                + ", ".join(eigene)
+            )
+        unbekannt = [n for n in neu if (ziel / SKILLS / n).exists() and n not in alt]
+        if unbekannt:
+            raise ValueError(
+                f"Ordner in {SKILLS}, die nicht in {STAND} stehen, Abbruch: "
+                + ", ".join(unbekannt)
             )
 
         # ... dann schreiben (Staging, Tausch, Rollback).

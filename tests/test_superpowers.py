@@ -79,7 +79,7 @@ class SuperpowersTest(unittest.TestCase):
         stand = json.loads((self.ziel / "tools/superpowers/stand.json").read_text())
         self.assertEqual(stand, {"quelle": self.quelle, "version": "v1.0.0",
                                  "commit": self.sha_v1_0_0, "skills": ["alpha", "beta"]})
-        self.assertTrue((self.ziel / ".agents/skills/alpha/SKILL.md").is_file())
+        self.assertTrue((self.ziel / ".github/skills/alpha/SKILL.md").is_file())
         self.assertTrue((self.ziel / "tools/superpowers/LICENSE").is_file())
         self.assertEqual(
             (self.ziel / ".agents/skills/commit-nachricht/SKILL.md").read_text(),
@@ -87,16 +87,18 @@ class SuperpowersTest(unittest.TestCase):
 
     def test_executable_bits_preserved(self):
         aktualisieren(self.ziel, self.quelle, "v1.0.0")
-        self.assertTrue(os.access(self.ziel / ".agents/skills/beta/scripts/run.sh", os.X_OK))
+        self.assertTrue(os.access(self.ziel / ".github/skills/beta/scripts/run.sh", os.X_OK))
 
     def test_update_removes_dropped_skills(self):
         aktualisieren(self.ziel, self.quelle, "v1.0.0")
         aktualisieren(self.ziel, self.quelle, "v1.10.0")
-        skills = self.ziel / ".agents/skills"
+        skills = self.ziel / ".github/skills"
+        eigene = self.ziel / ".agents/skills"
         self.assertTrue((skills / "alpha/SKILL.md").is_file())
         self.assertTrue((skills / "gamma/SKILL.md").is_file())
         self.assertFalse((skills / "beta").exists())
-        self.assertEqual((skills / "commit-nachricht/SKILL.md").read_text(),
+        self.assertFalse((skills / "commit-nachricht").exists())
+        self.assertEqual((eigene / "commit-nachricht/SKILL.md").read_text(),
                          self.eigener_skill_text)
         stand = json.loads((self.ziel / "tools/superpowers/stand.json").read_text())
         self.assertEqual(stand["skills"], ["alpha", "gamma"])
@@ -124,6 +126,20 @@ class SuperpowersTest(unittest.TestCase):
         code = self._fehler(["v1.0.0", "--quelle", self.quelle, "--ziel", str(self.ziel)])
         self.assertEqual(code, 2)
         self.assertEqual(schnappschuss(self.ziel), davor)
+
+    def test_unknown_folder_in_external_skills_aborts_without_changes(self):
+        fremd = self.ziel / ".github/skills/alpha"
+        fremd.mkdir(parents=True)
+        (fremd / "SKILL.md").write_text("unbekanntes alpha\n")
+        davor = schnappschuss(self.ziel)
+        code = self._fehler(["v1.0.0", "--quelle", self.quelle, "--ziel", str(self.ziel)])
+        self.assertEqual(code, 2)
+        self.assertEqual(schnappschuss(self.ziel), davor)
+
+    def test_external_skills_stay_out_of_own_folder(self):
+        aktualisieren(self.ziel, self.quelle, "v1.0.0")
+        eigene = sorted(p.name for p in (self.ziel / ".agents/skills").iterdir())
+        self.assertEqual(eigene, ["commit-nachricht"])
 
     def _stand_mit(self, skills):
         pfad = self.ziel / "tools/superpowers/stand.json"
@@ -159,7 +175,7 @@ class SuperpowersTest(unittest.TestCase):
         return code, davor, err.getvalue()
 
     def _kein_staging(self):
-        reste = [p.name for p in (self.ziel / ".agents").iterdir() if p.name.startswith(".staging")]
+        reste = [p.name for p in (self.ziel / ".github").iterdir() if p.name.startswith(".staging")]
         self.assertEqual(reste, [])
 
     def test_write_failure_rolls_back_and_leaves_no_staging(self):
@@ -195,7 +211,7 @@ class SuperpowersTest(unittest.TestCase):
         self.assertEqual(stand["commit"], "22f0b463e7a5e579904dd6211a520321035526f7")  # Commit hinter dem annotierten Tag (Tag-Objekt: c62ffea)
         self.assertEqual(len(stand["skills"]), 15)
         for name in stand["skills"]:
-            self.assertTrue((REPO / ".agents/skills" / name / "SKILL.md").is_file(), name)
+            self.assertTrue((REPO / ".github/skills" / name / "SKILL.md").is_file(), name)
         self.assertTrue((REPO / "tools/superpowers/LICENSE").is_file())
 
 
