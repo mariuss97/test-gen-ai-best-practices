@@ -14,9 +14,11 @@ non-Spring Java projects, narrow `applyTo` to the backend folders, for example
 - Java 21 (21.0.9). Spring Boot 4.1.1, which brings Spring Framework 7,
   Jakarta EE 11 (Servlet 6.1), Spring Security 7, Hibernate ORM 7 and
   Jackson 3.
+- Build with Gradle 9.7.1 through the Gradle wrapper (`./gradlew`). Do not
+  change the wrapper version without a team decision.
 - Use the dependency versions managed by the Spring Boot BOM. Do not pin
   versions of managed dependencies. Keep the Spring Boot version in one place
-  (parent, BOM property or version catalog).
+  (the `plugins` block or the version catalog).
 - Write code for Spring Boot 4. Do not suggest Spring Boot 2 or 3 APIs or
   `javax.*` imports; use `jakarta.*`.
 
@@ -138,28 +140,28 @@ non-Spring Java projects, narrow `applyTo` to the backend folders, for example
   `org.springframework.boot.webmvc.test.autoconfigure`) for MockMvc.
 - Run integration tests against real dependencies with Testcontainers, for
   example the same database as in production.
-- Name integration tests `*IT`, so Maven Failsafe runs them in `verify`.
+- Keep integration tests apart from unit tests the way the project's Gradle
+  build defines it (for example a separate JVM test suite), so
+  `./gradlew build` runs both.
 
 ## Build and verification
 
 - After adding or changing code, check that the project still builds.
-- Maven: run `./mvnw verify` (use the wrapper). `package` skips Failsafe
-  integration tests (`*IT`).
-- Gradle: run `./gradlew build`. The Spring Boot 4 Gradle plugin needs
-  Gradle 8.14 or later.
+- Run `./gradlew build`. It compiles, runs all tests and checks.
 - All tests must pass as part of the build.
-- Use `package` or `test` only as faster, focused commands, not as the final
+- Use `./gradlew test` only as a faster, focused command, not as the final
   check.
 
 ## Useful commands
 
-| Gradle | Maven | Description |
-|--------|-------|-------------|
-| `./gradlew bootRun` | `./mvnw spring-boot:run` | Run the application |
-| `./gradlew build` | `./mvnw verify` | Build and run all tests |
-| `./gradlew test` | `./mvnw test` | Run tests |
-| `./gradlew bootJar` | `./mvnw spring-boot:repackage` | Package the application as a JAR |
-| `./gradlew bootBuildImage` | `./mvnw spring-boot:build-image` | Package the application as a container image |
+| Command | Description |
+|---------|-------------|
+| `./gradlew bootRun` | Run the application |
+| `./gradlew build` | Build and run all tests |
+| `./gradlew test` | Run tests |
+| `./gradlew bootJar` | Package the application as a JAR |
+| `./gradlew bootBuildImage` | Package the application as a container image |
+| `./gradlew dependencies --configuration runtimeClasspath` | Show the resolved runtime dependencies |
 
 <!--
 Based on instructions/springboot.instructions.md (commit 942a83b0a080,

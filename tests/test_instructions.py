@@ -32,6 +32,13 @@ class InstructionsTest(unittest.TestCase):
             self.assertIn(fact, text)
         self.assertNotIn("JUnit 5", text)
 
+    def test_spring_boot_instructions_use_gradle_only(self):
+        text = (REPO / ".github/instructions/java-spring-boot.instructions.md").read_text(encoding="utf-8")
+        self.assertIn("Gradle 9.7.1", text)
+        self.assertIn("./gradlew build", text)
+        for maven in ["mvnw", "Maven", "pom.xml"]:
+            self.assertNotIn(maven, text)
+
     def test_spring_boot_instructions_credit_their_source(self):
         text = (REPO / ".github/instructions/java-spring-boot.instructions.md").read_text(encoding="utf-8")
         self.assertIn("https://github.com/github/awesome-copilot", text)
