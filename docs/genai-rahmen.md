@@ -23,7 +23,7 @@ Geteilt heißt: im Repo, eingecheckt, gilt für alle.
 | MCP-Server | `.mcp.json` im Hauptordner | Format `mcpServers` |
 | Editor-Einstellungen | `.vscode/settings.json` | Nur, was für alle gleich sein muss |
 | Empfohlene Erweiterungen | `.vscode/extensions.json` | Schlägt nur vor, installiert nichts |
-| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills in `.agents/skills/` | Stand in `tools/superpowers/stand.json` |
+| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills in `.agents/skills/` | Stand in `tools/fremde-skills/stand.json` |
 
 Privat heißt: im Home-Verzeichnis auf dem Linux-Rechner. VS Code löst `~` in
 einem Remote-Fenster auf dem Server auf. Private Dateien liegen also pro
@@ -60,7 +60,8 @@ gelten nur global, zum Beispiel `git.path`. Es gibt kein privates Gegenstück zu
 - Privates immer ins Home, auch für Claude Code (`~/.claude/`).
 - Fremde Skills (heute Superpowers) nie von Hand ändern, nur über ihr
   Update-Skript. Eigene Anpassungen gehören in eigene Skills.
-- Neue Fremdquellen vorher im Team abstimmen. Skills können Skripte
+- Neue Fremdquellen vorher im Team abstimmen (Vorgehen siehe „Fremde Skills
+  aktualisieren“). Skills können Skripte
   mitbringen, die auf dem Server laufen.
 - Neue geteilte Anpassungen zuerst privat ausprobieren, dann ins Repo
   verschieben.
@@ -141,17 +142,58 @@ Private Claude-Dateien gehören nach `~/.claude/CLAUDE.md` und
 `CLAUDE.local.md`, `.claude/` und `.superpowers/` (der Skill `brainstorming`
 legt dort Sitzungsdaten an). Hat das Repo Python-Tests, kommt `__pycache__/` dazu.
 
-## Superpowers aktualisieren
+## Fremde Skills aktualisieren
+
+Die Quellen stehen in `tools/fremde-skills/quellen.json`, Superpowers ist der
+erste Eintrag. Der Stand je Quelle steht in `tools/fremde-skills/stand.json`,
+die Lizenzen liegen unter `tools/fremde-skills/lizenzen/<quelle>/`.
 
 | Schritt | Befehl oder Aktion |
 |---------|--------------------|
-| Prüfen, ob es eine neuere Version gibt | `python3 tools/superpowers/aktualisieren.py --pruefen` |
-| Aktualisieren auf die neueste Version | `python3 tools/superpowers/aktualisieren.py` |
-| Aktualisieren auf eine feste Version | `python3 tools/superpowers/aktualisieren.py v7.0.3` |
+| Alle Quellen prüfen | `python3 tools/fremde-skills/aktualisieren.py --pruefen` |
+| Eine Quelle prüfen | `python3 tools/fremde-skills/aktualisieren.py --pruefen superpowers` |
+| Alle Quellen auf die neueste Version bringen | `python3 tools/fremde-skills/aktualisieren.py` |
+| Eine Quelle auf die neueste Version bringen | `python3 tools/fremde-skills/aktualisieren.py superpowers` |
+| Eine Quelle auf eine feste Version bringen | `python3 tools/fremde-skills/aktualisieren.py superpowers v7.0.3` |
 | Änderungen ansehen | `git diff --stat` |
 | Release-Notes lesen | [Superpowers auf GitHub](https://github.com/obra/superpowers) |
 | Ins Team geben | Committen und Pull Request öffnen |
 
 Zurück auf eine ältere Version geht genauso, mit deren Tag. Das Skript bricht
 ohne Änderung ab, wenn das Holen scheitert oder ein neuer Skill wie ein eigener
-Ordner heißt.
+Ordner oder wie ein Skill einer anderen Quelle heißt.
+
+### Neue Quelle hinzufügen
+
+1. Die Quelle im Team abstimmen und die Lizenz prüfen. Sie muss das Kopieren
+   erlauben.
+2. Einen Eintrag in `tools/fremde-skills/quellen.json` anlegen. Der Name der
+   Quelle besteht aus Kleinbuchstaben, Ziffern und Bindestrichen.
+3. `python3 tools/fremde-skills/aktualisieren.py <name>` ausführen.
+4. Mit `git diff --stat` und `git diff` prüfen, was neu im Repo liegt.
+5. Committen und Pull Request öffnen.
+
+Je Quelle gibt es diese Schlüssel:
+
+| Schlüssel | Bedeutung | Standard |
+|-----------|-----------|----------|
+| `url` | Git-URL der Quelle (Pflicht) | |
+| `pfad` | Ordner in der Quelle mit `<skill>/SKILL.md` | `skills` |
+| `lizenz` | Lizenzdatei in der Quelle | `LICENSE` |
+| `nur` | Liste: nur diese Skills übernehmen | alle |
+| `auslassen` | Liste: diese Skills nicht übernehmen | keine |
+
+`nur` und `auslassen` gehen nicht zusammen. Tippfehler in beiden Listen fallen
+auf, weil das Skript jeden Namen in der Quelle sucht.
+
+### Gleiche Skill-Namen in zwei Quellen
+
+Heißt ein Skill in zwei Quellen gleich, bricht das Skript ab und nennt beide
+Quellen. Nimm den Skill bei einer Quelle mit `auslassen` aus, zum Beispiel
+`"auslassen": ["brainstorming"]`, und starte das Skript neu.
+
+### Private Repos
+
+Private Repos, etwa in Azure DevOps, laufen über die normalen Git-Zugangsdaten
+auf dem Rechner. Das Skript ruft nur `git` auf. Funktioniert `git clone <url>`
+dort, funktioniert auch das Skript. Zugangsdaten gehören nie in `quellen.json`.

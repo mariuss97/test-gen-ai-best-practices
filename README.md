@@ -18,7 +18,7 @@ liegen. Die Anleitung für das Team steht in
 | `.vscode/settings.json` | `chat.useNestedAgentsMdFiles: true` |
 | `.vscode/extensions.json` | Empfiehlt GitHub Copilot (`github.copilot-chat`) |
 | `.github/skills/` (15 Skills und `README.md`) | Fremde Skills: Kopie von Superpowers v7.0.2, getrennt von den eigenen in `.agents/skills/` |
-| `tools/superpowers/` | Update-Skript, `stand.json`, Lizenz |
+| `tools/fremde-skills/` | Update-Skript, Quellenliste `quellen.json`, `stand.json`, Lizenzen |
 | `.gitignore` | Hält Claude-Dateien aus dem Repo |
 | `docs/genai-rahmen.md` | Anleitung für das Team |
 | `~/.agents/skills/privat-beispiel/` | Privater Skill, liegt außerhalb des Repos |
@@ -59,7 +59,7 @@ Nach jeder Änderung eine **neue** Chat-Sitzung starten.
 - [ ] 8. Superpowers: „Chat: Open Customizations“ zeigt die Skills (zum
   Beispiel `brainstorming`, `writing-plans`) als Workspace-Skills, und im Chat
   ist `/brainstorming` aufrufbar. Im Terminal meldet
-  `python3 tools/superpowers/aktualisieren.py --pruefen` den Stand.
+  `python3 tools/fremde-skills/aktualisieren.py --pruefen` den Stand.
 - [ ] 9. Die Punkte 2 bis 6 und 8 in beiden Agent-Modi wiederholen, soweit die
   Auswahl angeboten wird.
 - [ ] 10. Im Terminal `git status`: Der private Skill, `CLAUDE.md` und

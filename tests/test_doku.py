@@ -21,7 +21,7 @@ class DokuTest(unittest.TestCase):
         text = (REPO / "docs/genai-rahmen.md").read_text(encoding="utf-8")
         for h in ["## Was liegt wo", "## Regeln", "## Private Ordner anlegen",
                   "## Prüfen, ob alles erkannt wird", "## Bestehendes im Monorepo übernehmen",
-                  "## Später Claude Code dazunehmen", "## Superpowers aktualisieren"]:
+                  "## Später Claude Code dazunehmen", "## Fremde Skills aktualisieren"]:
             self.assertIn(h, text)
 
     def test_guide_has_mkdir_for_private_folders(self):
@@ -32,7 +32,7 @@ class DokuTest(unittest.TestCase):
         text = (REPO / "README.md").read_text(encoding="utf-8")
         for name in ["commit-nachricht", "privat-beispiel", "reviewer", "azure-devops",
                      "mcp.dev.azure.com/gmhgruppe", "projekte/beispiel-app/AGENTS.md", "docs/genai-rahmen.md",
-                     "tools/superpowers/aktualisieren.py --pruefen", "/brainstorming"]:
+                     "tools/fremde-skills/aktualisieren.py --pruefen", "/brainstorming"]:
             self.assertIn(name, text)
 
     def test_readme_has_no_claude_code_section(self):

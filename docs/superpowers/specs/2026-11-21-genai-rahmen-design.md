@@ -7,6 +7,8 @@ aktualisiert. Diese Kopie ersetzt die zwischenzeitlich geplante
 Plugin-Empfehlung. Außerdem ersetzt der Remote-MCP-Server von Azure DevOps
 (Organisation `gmhgruppe`) den Demo-MCP-Server. Fremde Skills liegen getrennt
 von den eigenen in `.github/skills/` (eigene weiter in `.agents/skills/`).
+Späterer Nachtrag: Das Update-Skript kennt mehrere Quellen und liegt unter
+`tools/fremde-skills/` (siehe Entscheidung 14).
 
 ## Absicht
 
@@ -429,7 +431,11 @@ Diese Punkte habe ich festgelegt, sie wurden nicht ausdrücklich besprochen:
     Skills in `.agents/skills/` (Weg C1, Trennung per Nachtrag auf Wunsch des
     Nutzers). Meine Festlegungen dazu: Alle 15 Skills werden
     kopiert, nichts wird ausgelassen. Das Skript ist in Python geschrieben und
-    holt die Dateien per `git`. Der Stand steht in `tools/superpowers/`, nicht
+    holt die Dateien per `git`. Der Stand steht in `tools/fremde-skills/`, nicht
     im Skill-Ordner. Die Lizenz wird mitkopiert. `AGENTS.md` ersetzt den
-    Hook.
+    Hook. Nachtrag: Das Skript liest eine Quellenliste
+    (`tools/fremde-skills/quellen.json`), Superpowers ist der erste Eintrag.
+    Der Stand aller Quellen steht in einer `stand.json`, die Lizenzen unter
+    `tools/fremde-skills/lizenzen/<quelle>/`. Gleiche Skill-Namen in zwei
+    Quellen löst `auslassen`.
 15. Das README enthält keinen Abschnitt mehr zu Claude Code.

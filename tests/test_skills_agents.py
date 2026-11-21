@@ -25,7 +25,9 @@ class SkillsAgentsTest(unittest.TestCase):
         self.assertIn("Beispiel", text)
 
     def test_own_and_external_skills_are_separate(self):
-        fremde = json.loads((REPO / "tools/superpowers/stand.json").read_text(encoding="utf-8"))["skills"]
+        stand = json.loads((REPO / "tools/fremde-skills/stand.json").read_text(encoding="utf-8"))
+        fremde = [skill for eintrag in stand.values() for skill in eintrag["skills"]]
+        self.assertEqual(len(fremde), len(set(fremde)))
         eigene = sorted(p.parent.name for p in (REPO / ".agents/skills").glob("*/SKILL.md"))
         in_github = sorted(p.parent.name for p in (REPO / ".github/skills").glob("*/SKILL.md"))
         self.assertEqual(in_github, sorted(fremde))
