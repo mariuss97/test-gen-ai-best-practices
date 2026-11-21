@@ -51,8 +51,10 @@ gelten nur global, zum Beispiel `git.path`. Es gibt kein privates Gegenstück zu
 - In `.vscode/settings.json` nur, was für alle gleich sein muss. Niemand kann
   es privat übersteuern.
 - Keine Geheimnisse in `.mcp.json` oder anderen eingecheckten Dateien.
-- Geteilte MCP-Server nur mit Laufzeiten, die auf dem Server systemweit
-  installiert sind, nicht pro Nutzer (zum Beispiel über nvm).
+- Geteilte MCP-Server bevorzugt als Remote-Server über HTTP, wie Azure DevOps
+  (`https://mcp.dev.azure.com/<organisation>`). Lokale Server nur mit
+  Laufzeiten, die auf dem Server systemweit installiert sind, nicht pro Nutzer
+  (zum Beispiel über nvm).
 - Private Skills bekommen den Präfix `privat-`. So kollidieren sie nicht mit
   geteilten Skills.
 - Privates immer ins Home, auch für Claude Code (`~/.claude/`).
@@ -124,7 +126,7 @@ wie sie sind. Für später gilt diese Übertragung:
 |------|-----------------|---------|
 | `AGENTS.md` im Hauptordner | `CLAUDE.md` mit `@AGENTS.md`, dann aus `.gitignore` nehmen | keiner |
 | Superpowers-Kopie in `.agents/skills/` | Zieht mit den anderen Skills nach `.claude/skills/` um (Zielordner im Skript anpassen). Oder Claude Code installiert das Plugin selbst | klein |
-| `.mcp.json` | Liest Claude Code direkt | keiner |
+| `.mcp.json` | Liest Claude Code direkt. Der Remote-Server von Azure DevOps braucht dort aber eine eigene App-Registrierung in Entra ID | klein |
 | Skills in `.agents/skills/` | Gleiches Format, aber Claude Code sucht nur in `.claude/skills/`. Ordner verschieben, nicht verlinken, sonst zeigt VS Code jeden Skill doppelt | klein |
 | `AGENTS.md` pro Projekt | Je Projekt eine `CLAUDE.md` mit `@AGENTS.md` | klein |
 | Regeln in `.github/instructions/` | Nach `.claude/rules/`, im Frontmatter wird `applyTo` zu `paths` | mechanisch |

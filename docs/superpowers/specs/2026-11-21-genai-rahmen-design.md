@@ -4,7 +4,8 @@ Stand: 2026-11-21 · Status: freigegeben (Ordnernamen bleiben wie beschrieben).
 Nachträge am selben Tag, ebenfalls freigegeben: Claude-Dateien kommen nicht ins
 Repo. Die Skills von Superpowers liegen als Kopie im Repo und werden per Skript
 aktualisiert. Diese Kopie ersetzt die zwischenzeitlich geplante
-Plugin-Empfehlung.
+Plugin-Empfehlung. Außerdem ersetzt der Remote-MCP-Server von Azure DevOps
+(Organisation `gmhgruppe`) den Demo-MCP-Server.
 
 ## Absicht
 
@@ -156,6 +157,15 @@ Weitere Fakten:
   Ordner enthalten Skripte. Dazu kommt ein Hook (`hooks/session-start`), der
   beim Sitzungsstart den Skill `using-superpowers` lädt.
 - Auf dem Server ist Node 22 vorhanden (über nvm), `uvx` nicht.
+- **Azure DevOps MCP:** Microsoft betreibt einen Remote-Server unter
+  `https://mcp.dev.azure.com/<organisation>` (allgemein verfügbar seit August
+  2026) und empfiehlt ihn vor dem lokalen Server (`npx @azure-devops/mcp`).
+  Voraussetzungen: Die Organisation hängt an Microsoft Entra ID, der Rechner
+  erreicht `mcp.dev.azure.com` per HTTPS. Anmeldung per Entra ID, die Rechte
+  des Nutzers in Azure DevOps gelten weiter. Einschränken lässt er sich über
+  die Header `X-MCP-Readonly` und `X-MCP-Toolsets`. Claude Code braucht dafür
+  eine eigene App-Registrierung in Entra ID. VS Code 1.147 liest HTTP-Server
+  mit `url` und `headers` aus `.mcp.json` (Quelle: `nativeMcpDiscoveryAdapters.ts`).
 
 ## Ansätze
 
@@ -272,8 +282,7 @@ gehören.
 | `.github/instructions/markdown.instructions.md` (neu) | Stilregeln für Doku, `applyTo: "**/*.md"`. | Erscheint unter „Instructions“; greift beim Bearbeiten von `.md`-Dateien. |
 | `.agents/skills/commit-nachricht/SKILL.md` (neu) | Schreibt eine Commit-Nachricht aus den Änderungen. Beispielformat: `<bereich>: <Beschreibung im Imperativ>`, Leerzeile, Stichpunkte. Im Skill als Beispiel gekennzeichnet, das das Team durch sein echtes Format ersetzt. | Erscheint unter „Skills“ als Workspace-Skill und als `/commit-nachricht`. |
 | `.github/agents/reviewer.agent.md` (neu) | Prüft Änderungen, darf nur lesen und suchen, nichts ändern. | Erscheint in der Agent-Auswahl als „reviewer“. |
-| `tools/mcp-demo/server.py` (neu) | Kleiner MCP-Server nur mit der Python-Standardbibliothek, ohne Downloads. Bietet ein Werkzeug, das einen festen, erkennbaren Text zurückgibt. Läuft mit dem systemweiten `python3`, also für jeden auf dem Server ohne Einrichtung. | Das Werkzeug ist im Chat aufrufbar und liefert den festen Text. |
-| `.mcp.json` (neu) | Meldet `tools/mcp-demo/server.py` an (`command: python3`, Pfad relativ zum Hauptordner). | „MCP: List Servers“ zeigt ihn mit Quelle `.mcp.json`, Status läuft. |
+| `.mcp.json` (neu) | Meldet den Remote-MCP-Server von Azure DevOps an: Name `azure-devops`, `type: http`, URL `https://mcp.dev.azure.com/gmhgruppe`. Keine Laufzeit auf dem Server nötig, Anmeldung per Microsoft Entra ID in VS Code. | „MCP: List Servers“ zeigt `azure-devops`. Nach der Anmeldung liefert eine Frage nach den Projekten von `gmhgruppe` Ergebnisse. |
 | `.vscode/settings.json` (neu) | `chat.useNestedAgentsMdFiles: true`, mit Kommentar warum. Sonst nichts. | Einstellung ist im Workspace-Tab gesetzt. |
 | `.vscode/extensions.json` (neu) | Empfiehlt die Copilot-Erweiterung. | Unter Erweiterungen „@recommended“. |
 | `tools/superpowers/aktualisieren.py` (neu) | Holt eine Superpowers-Version per `git clone` (Standard: neuester Tag `v*`) und ersetzt nur die Ordner, die in `stand.json` stehen. Bricht ohne Änderung ab, wenn ein neuer Skill wie ein eigener Ordner heißt oder das Holen scheitert. `--pruefen` meldet, ob es eine neuere Version gibt. Nur Standardbibliothek und `git`. | `python3 tools/superpowers/aktualisieren.py --pruefen` meldet „aktuell“. |
@@ -362,8 +371,9 @@ Beispiel. Inhalt:
 4. Agent-Auswahl: `reviewer` ist wählbar.
 5. Im Chat nach einer Datei in `projekte/beispiel-app/` fragen: In den
    Referenzen erscheint `projekte/beispiel-app/AGENTS.md`.
-6. „MCP: List Servers“: Der Demo-Server aus `.mcp.json` ist gelistet und
-   startet. Im Chat das Demo-Werkzeug aufrufen: Es liefert den festen Text.
+6. „MCP: List Servers“: `azure-devops` aus `.mcp.json` ist gelistet. Starten,
+   mit dem Microsoft-Konto anmelden und im Chat nach den Projekten in
+   `gmhgruppe` fragen.
 7. Erweiterungen, Filter „@recommended“: Copilot ist empfohlen.
 8. Superpowers: „Chat: Open Customizations“ zeigt die Superpowers-Skills
    (z. B. `brainstorming`, `writing-plans`) als Workspace-Skills, und im Chat
@@ -380,11 +390,6 @@ Beispiel. Inhalt:
   eindeutig erkennbar sein.
 - Gültige Werkzeugnamen im Frontmatter von `reviewer.agent.md` für VS Code
   1.147. Zu prüfen in der Referenz für Agent-Dateien.
-- Die Umsetzung des Demo-MCP-Servers: Er muss das MCP-Protokoll über stdio
-  so weit sprechen, dass VS Code ihn startet und das Werkzeug aufrufen kann.
-  Er nutzt nur die Standardbibliothek. Zu prüfen ist, ob VS Code den relativen
-  Pfad vom Hauptordner aus auflöst (laut Quellcode ist das Arbeitsverzeichnis
-  der Hauptordner).
 - Die genaue ID der Copilot-Erweiterung für `extensions.json`. Auf dem Server
   ist nur `github.copilot` installiert, was auf eine zusammengelegte
   Erweiterung hindeutet.
@@ -406,9 +411,11 @@ Diese Punkte habe ich festgelegt, sie wurden nicht ausdrücklich besprochen:
 7. Ein privater Beispiel-Skill wird in deinem Home auf diesem Rechner angelegt.
 8. Die Anleitung liegt in `docs/genai-rahmen.md`. Sie ist allgemein, die
    Prüfliste für die Demo steht im README.
-9. Der Demo-MCP-Server ist ein kleines selbst geschriebenes Python-Skript statt
-   eines Pakets über `npx`. Grund: Node gibt es hier nur über nvm, also pro
-   Nutzer. Bei `npx` würde außerdem beim Start Code aus dem Internet geladen.
+9. Statt eines Demo-MCP-Servers ist der Remote-MCP-Server von Azure DevOps
+   eingetragen (Nutzerentscheidung, Organisation `gmhgruppe`). Meine
+   Festlegungen: Remote statt lokal über `npx`, weil Node hier nur pro Nutzer
+   über nvm installiert ist und Microsoft den Remote-Server empfiehlt; alle
+   Werkzeuge freigegeben, kein `X-MCP-Readonly`.
 10. Das Commit-Format im Beispiel-Skill ist ein Platzhalter, den ihr durch
     euer echtes Format ersetzt.
 11. Claude Code findet die geteilten Skills und Agents vorerst nicht. Das ist

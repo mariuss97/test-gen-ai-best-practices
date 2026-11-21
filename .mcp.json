@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "genai-demo": {
-      "command": "python3",
-      "args": ["tools/mcp-demo/server.py"]
+    "azure-devops": {
+      "type": "http",
+      "url": "https://mcp.dev.azure.com/gmhgruppe"
     }
   }
 }

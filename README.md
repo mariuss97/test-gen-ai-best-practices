@@ -14,8 +14,7 @@ liegen. Die Anleitung für das Team steht in
 | `.github/instructions/markdown.instructions.md` | Stilregeln für `**/*.md` |
 | `.agents/skills/commit-nachricht/` | Eigener Beispiel-Skill |
 | `.github/agents/reviewer.agent.md` | Agent `reviewer`, darf nur lesen und suchen |
-| `tools/mcp-demo/server.py` | Demo-MCP-Server mit dem Werkzeug `demo_gruss` |
-| `.mcp.json` | Meldet den Server `genai-demo` an |
+| `.mcp.json` | Meldet den Azure-DevOps-MCP-Server `azure-devops` an (Remote-Server `https://mcp.dev.azure.com/gmhgruppe`) |
 | `.vscode/settings.json` | `chat.useNestedAgentsMdFiles: true` |
 | `.vscode/extensions.json` | Empfiehlt GitHub Copilot (`github.copilot-chat`) |
 | `.agents/skills/` (15 Skills) | Kopie von Superpowers v7.0.2 |
@@ -48,9 +47,12 @@ Nach jeder Änderung eine **neue** Chat-Sitzung starten.
 - [ ] 4. In der Agent-Auswahl ist `reviewer` wählbar.
 - [ ] 5. Im Chat nach einer Datei in `projekte/beispiel-app/` fragen. In den
   Referenzen erscheint `projekte/beispiel-app/AGENTS.md`.
-- [ ] 6. „MCP: List Servers“: `genai-demo` aus `.mcp.json` ist gelistet und
-  startet. Im Chat das Werkzeug `demo_gruss` aufrufen. Es liefert den festen
-  Text.
+- [ ] 6. „MCP: List Servers“: `azure-devops` aus `.mcp.json` ist gelistet.
+  Server starten und mit dem Microsoft-Konto anmelden (Entra ID). Dann im Chat
+  fragen: „Liste die Projekte in gmhgruppe auf.“ Die Antwort nutzt ein
+  Werkzeug von `azure-devops` und zeigt Projekte. Kommt keine Verbindung
+  zustande, muss der Linux-Rechner `https://mcp.dev.azure.com` per HTTPS
+  erreichen.
 - [ ] 7. Erweiterungen, Filter „@recommended“: GitHub Copilot
   (`github.copilot-chat`) ist empfohlen. VS Code zeigt eine eingebaute
   Erweiterung dort womöglich nicht als Empfehlung an.

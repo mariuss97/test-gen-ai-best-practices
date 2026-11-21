@@ -30,8 +30,8 @@ class DokuTest(unittest.TestCase):
 
     def test_readme_checklist_names_demo_items(self):
         text = (REPO / "README.md").read_text(encoding="utf-8")
-        for name in ["commit-nachricht", "privat-beispiel", "reviewer", "genai-demo",
-                     "demo_gruss", "projekte/beispiel-app/AGENTS.md", "docs/genai-rahmen.md",
+        for name in ["commit-nachricht", "privat-beispiel", "reviewer", "azure-devops",
+                     "mcp.dev.azure.com/gmhgruppe", "projekte/beispiel-app/AGENTS.md", "docs/genai-rahmen.md",
                      "tools/superpowers/aktualisieren.py --pruefen", "/brainstorming"]:
             self.assertIn(name, text)
 
