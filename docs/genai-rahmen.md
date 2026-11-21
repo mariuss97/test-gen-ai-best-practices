@@ -67,6 +67,17 @@ Superpowers liegt als Kopie im Repo und nicht als Plugin. Das braucht keine
 Einrichtung, alle haben dieselbe Version, und jedes Update ist ein prüfbarer
 Diff. Die Skills heißen dann `/brainstorming` statt `/superpowers:brainstorming`.
 
+Bei der Kopie entfällt der Hook des Plugins, der `using-superpowers` zu
+Sitzungsbeginn lädt. Die `AGENTS.md` des Repos braucht deshalb diesen Hinweis,
+zum Kopieren:
+
+```markdown
+Prüfe vor jeder Aufgabe, ob ein Skill passt. Lies dafür zuerst den Skill
+`using-superpowers`.
+```
+
+`superpowers:<name>` in den Superpowers-Skills meint den Skill `<name>` unter `.agents/skills/`. Diesen Satz nimmst du am besten ebenfalls in die `AGENTS.md` auf.
+
 ## Private Ordner anlegen
 
 Einmalig auf dem Linux-Rechner:
@@ -90,7 +101,7 @@ Nach Änderungen eine neue Chat-Sitzung starten.
 | Nichts Privates im Repo | `git status` |
 
 Im Repo `test-gen-ai-best-practices` steht die konkrete Prüfliste für die
-Demo-Dateien im [README](../README.md).
+Demo-Dateien im README des Demo-Repos.
 
 ## Bestehendes im Monorepo übernehmen
 
@@ -121,9 +132,12 @@ wie sie sind. Für später gilt diese Übertragung:
 | Hooks in `.github/hooks/` | Anderes Format in `.claude/settings.json` | neu schreiben |
 | Privates in `~/.copilot/…`, `~/.agents/skills/` | Nach `~/.claude/…` | verschieben |
 
+Skills, Regeln und Agents liegen danach unter `.claude/`, und `CLAUDE.md` wird eingecheckt. Beides steht heute in der `.gitignore`, `git add` verweigert sie dann. Nimm `.claude/` und `CLAUDE.md` aus der `.gitignore` und lass nur `.claude/settings.local.json` und `CLAUDE.local.md` ignoriert.
+
 Private Claude-Dateien gehören nach `~/.claude/CLAUDE.md` und
-`~/.claude/settings.json`. Als Sicherheitsnetz stehen `CLAUDE.md`,
-`CLAUDE.local.md` und `.claude/` in der `.gitignore`.
+`~/.claude/settings.json`. Diese Zeilen gehören in die `.gitignore`: `CLAUDE.md`,
+`CLAUDE.local.md`, `.claude/` und `.superpowers/` (der Skill `brainstorming`
+legt dort Sitzungsdaten an). Hat das Repo Python-Tests, kommt `__pycache__/` dazu.
 
 ## Superpowers aktualisieren
 

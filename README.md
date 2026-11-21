@@ -17,7 +17,7 @@ liegen. Die Anleitung für das Team steht in
 | `tools/mcp-demo/server.py` | Demo-MCP-Server mit dem Werkzeug `demo_gruss` |
 | `.mcp.json` | Meldet den Server `genai-demo` an |
 | `.vscode/settings.json` | `chat.useNestedAgentsMdFiles: true` |
-| `.vscode/extensions.json` | Empfiehlt GitHub Copilot Chat |
+| `.vscode/extensions.json` | Empfiehlt GitHub Copilot (`github.copilot-chat`) |
 | `.agents/skills/` (15 Skills) | Kopie von Superpowers v7.0.2 |
 | `tools/superpowers/` | Update-Skript, `stand.json`, Lizenz |
 | `.gitignore` | Hält Claude-Dateien aus dem Repo |
@@ -30,7 +30,8 @@ Voraussetzungen:
 
 - VS Code ist per Remote-SSH mit dem Server verbunden.
 - Geöffnet ist **dieser Ordner** als Workspace, nicht der Überordner `repos`.
-- Die Erweiterung „GitHub Copilot Chat“ ist auf der SSH-Seite installiert.
+- Die Erweiterung „GitHub Copilot“ (ID `github.copilot-chat`) ist in VS Code
+  1.147 eingebaut. Prüfe nur, dass sie auf der SSH-Seite aktiv ist.
 
 Nach jeder Änderung eine **neue** Chat-Sitzung starten.
 
@@ -50,8 +51,9 @@ Nach jeder Änderung eine **neue** Chat-Sitzung starten.
 - [ ] 6. „MCP: List Servers“: `genai-demo` aus `.mcp.json` ist gelistet und
   startet. Im Chat das Werkzeug `demo_gruss` aufrufen. Es liefert den festen
   Text.
-- [ ] 7. Erweiterungen, Filter „@recommended“: GitHub Copilot Chat ist
-  empfohlen.
+- [ ] 7. Erweiterungen, Filter „@recommended“: GitHub Copilot
+  (`github.copilot-chat`) ist empfohlen. VS Code zeigt eine eingebaute
+  Erweiterung dort womöglich nicht als Empfehlung an.
 - [ ] 8. Superpowers: „Chat: Open Customizations“ zeigt die Skills (zum
   Beispiel `brainstorming`, `writing-plans`) als Workspace-Skills, und im Chat
   ist `/brainstorming` aufrufbar. Im Terminal meldet
