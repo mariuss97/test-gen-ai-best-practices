@@ -1,6 +1,5 @@
-"""Tests for the shared MCP configuration (.mcp.json, if present)."""
+"""Tests for the MCP setup: the repo ships no MCP server."""
 
-import json
 import unittest
 
 from tests.helpers import REPO
@@ -8,14 +7,13 @@ from tests.helpers import REPO
 
 class McpConfigTest(unittest.TestCase):
 
-    def test_no_local_mcp_servers_need_a_runtime(self):
-        # Shared servers must start without a per-user runtime (e.g. nvm).
-        path = REPO / ".mcp.json"
-        if not path.exists():
-            self.skipTest("no .mcp.json in the repo")
-        config = json.loads(path.read_text(encoding="utf-8"))
-        for name, entry in config["mcpServers"].items():
-            self.assertNotIn("command", entry, name)
+    def test_repo_ships_no_mcp_config(self):
+        # MCP servers are configured privately in ~/.copilot/mcp-config.json
+        # (see docs/genai-framework.md, "Private MCP servers"). If the team
+        # decides to share a server, replace this test with one that checks
+        # the shared .mcp.json (remote servers only, no per-user runtime).
+        for path in (".mcp.json", ".vscode/mcp.json"):
+            self.assertFalse((REPO / path).exists(), f"{path} must not be in the repo")
 
 
 if __name__ == "__main__":

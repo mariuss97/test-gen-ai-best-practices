@@ -90,7 +90,7 @@ Verified on 2026-11-21 against the VS Code docs and the source code of VS Code
 | Agents | `.github/agents`, `.claude/agents` | `~/.copilot/agents`, `~/.claude/agents` |
 | Hooks | `.github/hooks`, `.claude/settings.json`, `.claude/settings.local.json` | `~/.copilot/hooks`, `~/.claude/settings.json` |
 | Project instructions | `AGENTS.md`, `.github/copilot-instructions.md`, `CLAUDE.md` | – |
-| MCP servers | `.mcp.json` (main folder), `.vscode/mcp.json` (old) | `~/.copilot/mcp-config.json` (Copilot mode) |
+| MCP servers | `.mcp.json` (main folder), `.vscode/mcp.json` (old) | `~/.copilot/mcp-config.json` (read by VS Code and the Copilot CLI) |
 
 More facts:
 
@@ -413,11 +413,10 @@ worded generally and names the demo files at most as an example. Content:
 
 - Exact wording of the example content. It must be short and clearly
   recognizable by one feature.
-- Valid tool names in the frontmatter of `reviewer.agent.md` for VS Code
-  1.147. To check in the reference for agent files.
-- The exact ID of the Copilot extension for `extensions.json`. Only
-  `github.copilot` is installed on the server, which points to a merged
-  extension.
+- Valid tool names in the frontmatter of `reviewer.agent.md`. Resolved:
+  `read` and `search`, the built-in tool sets in VS Code 1.147.
+- The exact ID of the Copilot extension for `extensions.json`. Resolved:
+  `github.copilot-chat`, built into VS Code 1.147 and shown as "GitHub Copilot".
 - Whether VS Code offers a built-in transfer from `.vscode/mcp.json` to
   `.mcp.json`. It does not in 1.147, so the guide describes the manual move.
 
