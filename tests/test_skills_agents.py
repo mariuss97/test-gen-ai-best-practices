@@ -1,11 +1,11 @@
-"""Tests für geteilte Skills und den Agent reviewer."""
+"""Tests for shared skills and the reviewer agent."""
 
 import json
 import re
 import subprocess
 import unittest
 
-from tests.hilfen import REPO, frontmatter
+from tests.helpers import REPO, frontmatter
 
 
 class SkillsAgentsTest(unittest.TestCase):
@@ -20,19 +20,19 @@ class SkillsAgentsTest(unittest.TestCase):
             self.assertTrue(fm["description"])
 
     def test_commit_skill_marks_format_as_example(self):
-        text = (REPO / ".agents/skills/commit-nachricht/SKILL.md").read_text(encoding="utf-8")
+        text = (REPO / ".agents/skills/commit-message/SKILL.md").read_text(encoding="utf-8")
         self.assertIn("<bereich>: <Beschreibung im Imperativ>", text)
         self.assertIn("Beispiel", text)
 
     def test_own_and_external_skills_are_separate(self):
-        stand = json.loads((REPO / "tools/fremde-skills/stand.json").read_text(encoding="utf-8"))
-        fremde = [skill for eintrag in stand.values() for skill in eintrag["skills"]]
-        self.assertEqual(len(fremde), len(set(fremde)))
-        eigene = sorted(p.parent.name for p in (REPO / ".agents/skills").glob("*/SKILL.md"))
+        lock = json.loads((REPO / "tools/external-skills/lock.json").read_text(encoding="utf-8"))
+        external = [skill for entry in lock.values() for skill in entry["skills"]]
+        self.assertEqual(len(external), len(set(external)))
+        own = sorted(p.parent.name for p in (REPO / ".agents/skills").glob("*/SKILL.md"))
         in_github = sorted(p.parent.name for p in (REPO / ".github/skills").glob("*/SKILL.md"))
-        self.assertEqual(in_github, sorted(fremde))
-        self.assertFalse(set(eigene) & set(fremde))
-        self.assertIn("aktualisieren.py", (REPO / ".github/skills/README.md").read_text(encoding="utf-8"))
+        self.assertEqual(in_github, sorted(external))
+        self.assertFalse(set(own) & set(external))
+        self.assertIn("update.py", (REPO / ".github/skills/README.md").read_text(encoding="utf-8"))
 
     def test_reviewer_is_read_only(self):
         fm = frontmatter(REPO / ".github/agents/reviewer.agent.md")
@@ -44,7 +44,7 @@ class SkillsAgentsTest(unittest.TestCase):
         out = subprocess.run(
             ["git", "ls-files"], cwd=REPO, capture_output=True, text=True, check=True
         ).stdout
-        self.assertNotIn("privat-", out)
+        self.assertNotIn("private-", out)
 
 
 if __name__ == "__main__":

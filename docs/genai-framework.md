@@ -23,7 +23,7 @@ Geteilt heißt: im Repo, eingecheckt, gilt für alle.
 | MCP-Server | `.mcp.json` im Hauptordner | Format `mcpServers` |
 | Editor-Einstellungen | `.vscode/settings.json` | Nur, was für alle gleich sein muss |
 | Empfohlene Erweiterungen | `.vscode/extensions.json` | Schlägt nur vor, installiert nichts |
-| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills in `.agents/skills/` | Stand in `tools/fremde-skills/stand.json` |
+| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills in `.agents/skills/` | Stand in `tools/external-skills/lock.json` |
 
 Privat heißt: im Home-Verzeichnis auf dem Linux-Rechner. VS Code löst `~` in
 einem Remote-Fenster auf dem Server auf. Private Dateien liegen also pro
@@ -144,17 +144,17 @@ legt dort Sitzungsdaten an). Hat das Repo Python-Tests, kommt `__pycache__/` daz
 
 ## Fremde Skills aktualisieren
 
-Die Quellen stehen in `tools/fremde-skills/quellen.json`, Superpowers ist der
-erste Eintrag. Der Stand je Quelle steht in `tools/fremde-skills/stand.json`,
-die Lizenzen liegen unter `tools/fremde-skills/lizenzen/<quelle>/`.
+Die Quellen stehen in `tools/external-skills/sources.json`, Superpowers ist der
+erste Eintrag. Der Stand je Quelle steht in `tools/external-skills/lock.json`,
+die Lizenzen liegen unter `tools/external-skills/licenses/<quelle>/`.
 
 | Schritt | Befehl oder Aktion |
 |---------|--------------------|
-| Alle Quellen prüfen | `python3 tools/fremde-skills/aktualisieren.py --pruefen` |
-| Eine Quelle prüfen | `python3 tools/fremde-skills/aktualisieren.py --pruefen superpowers` |
-| Alle Quellen auf die neueste Version bringen | `python3 tools/fremde-skills/aktualisieren.py` |
-| Eine Quelle auf die neueste Version bringen | `python3 tools/fremde-skills/aktualisieren.py superpowers` |
-| Eine Quelle auf eine feste Version bringen | `python3 tools/fremde-skills/aktualisieren.py superpowers v7.0.3` |
+| Alle Quellen prüfen | `python3 tools/external-skills/update.py --check` |
+| Eine Quelle prüfen | `python3 tools/external-skills/update.py --check superpowers` |
+| Alle Quellen auf die neueste Version bringen | `python3 tools/external-skills/update.py` |
+| Eine Quelle auf die neueste Version bringen | `python3 tools/external-skills/update.py superpowers` |
+| Eine Quelle auf eine feste Version bringen | `python3 tools/external-skills/update.py superpowers v7.0.3` |
 | Änderungen ansehen | `git status` (neue Ordner) und `git diff --stat` |
 | Release-Notes lesen | [Superpowers auf GitHub](https://github.com/obra/superpowers) |
 | Ins Team geben | Committen und Pull Request öffnen |
@@ -167,12 +167,12 @@ Ordner oder wie ein Skill einer anderen Quelle heißt.
 
 1. Die Quelle im Team abstimmen und die Lizenz prüfen. Sie muss das Kopieren
    erlauben.
-2. Einen Eintrag in `tools/fremde-skills/quellen.json` anlegen. Der Name der
+2. Einen Eintrag in `tools/external-skills/sources.json` anlegen. Der Name der
    Quelle besteht aus Kleinbuchstaben, Ziffern und Bindestrichen.
-3. `python3 tools/fremde-skills/aktualisieren.py <name>` ausführen.
+3. `python3 tools/external-skills/update.py <name>` ausführen.
 4. Mit `git status` prüfen, welche Ordner neu sind. Neue Skills sind noch nicht
    versioniert und fehlen deshalb in `git diff`. Darum zuerst
-   `git add .github/skills tools/fremde-skills`, dann mit
+   `git add .github/skills tools/external-skills`, dann mit
    `git diff --cached --stat` ansehen, was ins Repo kommt.
 5. Committen und Pull Request öffnen.
 
@@ -199,4 +199,4 @@ Quellen. Nimm den Skill bei einer Quelle mit `auslassen` aus, zum Beispiel
 
 Private Repos, etwa in Azure DevOps, laufen über die normalen Git-Zugangsdaten
 auf dem Rechner. Das Skript ruft nur `git` auf. Funktioniert `git clone <url>`
-dort, funktioniert auch das Skript. Zugangsdaten gehören nie in `quellen.json`.
+dort, funktioniert auch das Skript. Zugangsdaten gehören nie in `sources.json`.

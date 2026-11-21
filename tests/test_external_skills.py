@@ -1,4 +1,4 @@
-"""Tests für das Update-Skript für fremde Skills (offline, mit Fixture-Repo)."""
+"""Tests for the update script for external skills (offline, with fixture repos)."""
 
 import importlib.util
 import json
@@ -9,17 +9,17 @@ import unittest
 from unittest import mock
 from pathlib import Path
 
-from tests.hilfen import REPO
+from tests.helpers import REPO
 
 _SPEC = importlib.util.spec_from_file_location(
-    "aktualisieren", REPO / "tools/fremde-skills/aktualisieren.py"
+    "update_script", REPO / "tools/external-skills/update.py"
 )
-_MODUL = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(_MODUL)
-neueste_version = _MODUL.neueste_version
-aktualisieren = _MODUL.aktualisieren
-pruefen = _MODUL.pruefen
-main = _MODUL.main
+_MODULE = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(_MODULE)
+latest_version = _MODULE.latest_version
+update = _MODULE.update
+check = _MODULE.check
+main = _MODULE.main
 
 GIT = ["git", "-c", "user.name=t", "-c", "user.email=t@t",
        "-c", "init.defaultBranch=main", "-c", "commit.gpgsign=false"]
@@ -30,38 +30,38 @@ def git(cwd, *args):
                           capture_output=True, text=True).stdout.strip()
 
 
-def schnappschuss(pfad):
-    """Alle Dateien unter pfad (relativer Pfad -> Inhalt)."""
-    pfad = Path(pfad)
-    return {str(p.relative_to(pfad)): p.read_bytes()
-            for p in sorted(pfad.rglob("*")) if p.is_file()}
+def snapshot(path):
+    """All files under path (relative path -> content)."""
+    path = Path(path)
+    return {str(p.relative_to(path)): p.read_bytes()
+            for p in sorted(path.rglob("*")) if p.is_file()}
 
 
-STAND = "tools/fremde-skills/stand.json"
-QUELLEN = "tools/fremde-skills/quellen.json"
+LOCK = "tools/external-skills/lock.json"
+SOURCES = "tools/external-skills/sources.json"
 
 
-def _repo_mit_skills(pfad, skills, lizenz="MIT\n"):
-    pfad.mkdir(parents=True)
+def _repo_with_skills(path, skills, license="MIT\n"):
+    path.mkdir(parents=True)
     for s in skills:
-        (pfad / "skills" / s).mkdir(parents=True)
-        (pfad / "skills" / s / "SKILL.md").write_text(s + "\n")
-    (pfad / "LICENSE").write_text(lizenz)
-    git(pfad, "init", "--quiet")
-    git(pfad, "add", ".")
-    git(pfad, "commit", "--quiet", "-m", "eins")
-    git(pfad, "tag", "v1.0.0")
-    return git(pfad, "rev-parse", "HEAD")
+        (path / "skills" / s).mkdir(parents=True)
+        (path / "skills" / s / "SKILL.md").write_text(s + "\n")
+    (path / "LICENSE").write_text(license)
+    git(path, "init", "--quiet")
+    git(path, "add", ".")
+    git(path, "commit", "--quiet", "-m", "one")
+    git(path, "tag", "v1.0.0")
+    return git(path, "rev-parse", "HEAD")
 
 
-def _ruhig(funktion, *args):
+def _quiet(funktion, *args):
     import contextlib
     import io
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         return funktion(*args)
 
 
-class FremdeSkillsTest(unittest.TestCase):
+class ExternalSkillsTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
@@ -77,7 +77,7 @@ class FremdeSkillsTest(unittest.TestCase):
         (up / "LICENSE").write_text("MIT\n")
         git(up, "init", "--quiet")
         git(up, "add", ".")
-        git(up, "commit", "--quiet", "-m", "eins")
+        git(up, "commit", "--quiet", "-m", "one")
         self.sha_v1_0_0 = git(up, "rev-parse", "HEAD")
         git(up, "tag", "v1.0.0")
         git(up, "tag", "v1.2.0")
@@ -85,83 +85,83 @@ class FremdeSkillsTest(unittest.TestCase):
         (up / "skills/gamma").mkdir()
         (up / "skills/gamma/SKILL.md").write_text("gamma\n")
         git(up, "add", ".")
-        git(up, "commit", "--quiet", "-m", "zwei")
+        git(up, "commit", "--quiet", "-m", "two")
         git(up, "tag", "v1.10.0")
-        self.quelle = up.as_uri()
+        self.source_url = up.as_uri()
 
-        # zweite Quelle: "alpha" gleicht dem Skill der ersten, "delta" ist neu
-        self.zweite = tmp / "zweite"
-        self.sha_zweite = _repo_mit_skills(self.zweite, ["alpha", "delta"], "Apache\n")
+        # second source: "alpha" matches the skill of the first, "delta" is new
+        self.second = tmp / "second"
+        self.sha_second = _repo_with_skills(self.second, ["alpha", "delta"], "Apache\n")
 
-        self.ziel = tmp / "ziel"
-        eigen = self.ziel / ".agents/skills/commit-nachricht"
+        self.target = tmp / "target"
+        eigen = self.target / ".agents/skills/commit-message"
         eigen.mkdir(parents=True)
-        self.eigener_skill_text = "eigener skill\n"
-        (eigen / "SKILL.md").write_text(self.eigener_skill_text)
-        self.schreibe_quellen({"erste": {"url": self.quelle}})
+        self.own_skill_text = "own skill\n"
+        (eigen / "SKILL.md").write_text(self.own_skill_text)
+        self.write_sources({"first": {"url": self.source_url}})
 
-    def schreibe_quellen(self, quellen):
-        pfad = self.ziel / QUELLEN
-        pfad.parent.mkdir(parents=True, exist_ok=True)
-        pfad.write_text(json.dumps(quellen, indent=2) + "\n")
+    def write_sources(self, sources):
+        path = self.target / SOURCES
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(sources, indent=2) + "\n")
 
-    def zwei_quellen(self, **extra):
-        zweite = {"url": self.zweite.as_uri(), **extra}
-        self.schreibe_quellen({"erste": {"url": self.quelle}, "zweite": zweite})
+    def two_sources(self, **extra):
+        second = {"url": self.second.as_uri(), **extra}
+        self.write_sources({"first": {"url": self.source_url}, "second": second})
 
-    def stand(self):
-        return json.loads((self.ziel / STAND).read_text())
+    def lock(self):
+        return json.loads((self.target / LOCK).read_text())
 
-    def test_neueste_version_sorts_numerically(self):
-        self.assertEqual(neueste_version(self.quelle), "v1.10.0")
+    def test_latest_version_sorts_numerically(self):
+        self.assertEqual(latest_version(self.source_url), "v1.10.0")
 
-    def test_install_copies_skills_and_writes_stand(self):
-        eintrag = aktualisieren(self.ziel, "erste", "v1.0.0")
-        erwartet = {"url": self.quelle, "version": "v1.0.0",
+    def test_install_copies_skills_and_writes_lock(self):
+        entry = update(self.target, "first", "v1.0.0")
+        expected = {"url": self.source_url, "version": "v1.0.0",
                     "commit": self.sha_v1_0_0, "skills": ["alpha", "beta"]}
-        self.assertEqual(eintrag, erwartet)
-        self.assertEqual(self.stand(), {"erste": erwartet})
-        self.assertTrue((self.ziel / ".github/skills/alpha/SKILL.md").is_file())
+        self.assertEqual(entry, expected)
+        self.assertEqual(self.lock(), {"first": expected})
+        self.assertTrue((self.target / ".github/skills/alpha/SKILL.md").is_file())
         self.assertEqual(
-            (self.ziel / "tools/fremde-skills/lizenzen/erste/LICENSE").read_text(), "MIT\n")
+            (self.target / "tools/external-skills/licenses/first/LICENSE").read_text(), "MIT\n")
         self.assertEqual(
-            (self.ziel / ".agents/skills/commit-nachricht/SKILL.md").read_text(),
-            self.eigener_skill_text)
+            (self.target / ".agents/skills/commit-message/SKILL.md").read_text(),
+            self.own_skill_text)
 
-    def test_stand_file_format(self):
-        self.zwei_quellen(auslassen=["alpha"])
-        aktualisieren(self.ziel, "zweite", "v1.0.0")
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        text = (self.ziel / STAND).read_text(encoding="utf-8")
+    def test_lock_file_format(self):
+        self.two_sources(exclude=["alpha"])
+        update(self.target, "second", "v1.0.0")
+        update(self.target, "first", "v1.0.0")
+        text = (self.target / LOCK).read_text(encoding="utf-8")
         self.assertTrue(text.endswith("}\n"))
-        self.assertEqual(list(json.loads(text)), ["erste", "zweite"])
+        self.assertEqual(list(json.loads(text)), ["first", "second"])
         self.assertEqual(text, json.dumps(json.loads(text), indent=2, ensure_ascii=False) + "\n")
 
     def test_executable_bits_preserved(self):
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        self.assertTrue(os.access(self.ziel / ".github/skills/beta/scripts/run.sh", os.X_OK))
+        update(self.target, "first", "v1.0.0")
+        self.assertTrue(os.access(self.target / ".github/skills/beta/scripts/run.sh", os.X_OK))
 
     def test_update_removes_dropped_skills(self):
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        aktualisieren(self.ziel, "erste", "v1.10.0")
-        skills = self.ziel / ".github/skills"
-        eigene = self.ziel / ".agents/skills"
+        update(self.target, "first", "v1.0.0")
+        update(self.target, "first", "v1.10.0")
+        skills = self.target / ".github/skills"
+        own = self.target / ".agents/skills"
         self.assertTrue((skills / "alpha/SKILL.md").is_file())
         self.assertTrue((skills / "gamma/SKILL.md").is_file())
         self.assertFalse((skills / "beta").exists())
-        self.assertFalse((skills / "commit-nachricht").exists())
-        self.assertEqual((eigene / "commit-nachricht/SKILL.md").read_text(),
-                         self.eigener_skill_text)
-        self.assertEqual(self.stand()["erste"]["skills"], ["alpha", "gamma"])
+        self.assertFalse((skills / "commit-message").exists())
+        self.assertEqual((own / "commit-message/SKILL.md").read_text(),
+                         self.own_skill_text)
+        self.assertEqual(self.lock()["first"]["skills"], ["alpha", "gamma"])
 
     def test_same_version_twice_is_idempotent(self):
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        davor = schnappschuss(self.ziel)
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        self.assertEqual(schnappschuss(self.ziel), davor)
+        update(self.target, "first", "v1.0.0")
+        before = snapshot(self.target)
+        update(self.target, "first", "v1.0.0")
+        self.assertEqual(snapshot(self.target), before)
 
-    def _fehler(self, argv):
-        # stderr bewusst verschlucken, damit die Testausgabe sauber bleibt
+    def _error(self, argv):
+        # swallow stderr on purpose to keep the test output clean
         import contextlib
         import io
         with contextlib.redirect_stderr(io.StringIO()) as err:
@@ -169,237 +169,237 @@ class FremdeSkillsTest(unittest.TestCase):
         self.assertTrue(err.getvalue().strip())
         return code
 
-    def _fehler_ohne_aenderung(self, *argv):
-        davor = schnappschuss(self.ziel)
-        code = self._fehler([*argv, "--ziel", str(self.ziel)])
+    def _error_without_change(self, *argv):
+        before = snapshot(self.target)
+        code = self._error([*argv, "--target", str(self.target)])
         self.assertEqual(code, 2)
-        self.assertEqual(schnappschuss(self.ziel), davor)
+        self.assertEqual(snapshot(self.target), before)
 
     def test_conflict_with_own_skill_aborts_without_changes(self):
-        eigen = self.ziel / ".agents/skills/alpha"
+        eigen = self.target / ".agents/skills/alpha"
         eigen.mkdir(parents=True)
-        (eigen / "SKILL.md").write_text("mein alpha\n")
-        self._fehler_ohne_aenderung("erste", "v1.0.0")
+        (eigen / "SKILL.md").write_text("my alpha\n")
+        self._error_without_change("first", "v1.0.0")
 
     def test_unknown_folder_in_external_skills_aborts_without_changes(self):
-        fremd = self.ziel / ".github/skills/alpha"
-        fremd.mkdir(parents=True)
-        (fremd / "SKILL.md").write_text("unbekanntes alpha\n")
-        self._fehler_ohne_aenderung("erste", "v1.0.0")
+        foreign = self.target / ".github/skills/alpha"
+        foreign.mkdir(parents=True)
+        (foreign / "SKILL.md").write_text("unknown alpha\n")
+        self._error_without_change("first", "v1.0.0")
 
     def test_external_skills_stay_out_of_own_folder(self):
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        eigene = sorted(p.name for p in (self.ziel / ".agents/skills").iterdir())
-        self.assertEqual(eigene, ["commit-nachricht"])
+        update(self.target, "first", "v1.0.0")
+        own = sorted(p.name for p in (self.target / ".agents/skills").iterdir())
+        self.assertEqual(own, ["commit-message"])
 
     def test_name_clash_between_sources_aborts_and_names_both(self):
-        self.zwei_quellen()
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        davor = schnappschuss(self.ziel)
+        self.two_sources()
+        update(self.target, "first", "v1.0.0")
+        before = snapshot(self.target)
         import contextlib
         import io
         with contextlib.redirect_stderr(io.StringIO()) as err:
-            code = main(["zweite", "v1.0.0", "--ziel", str(self.ziel)])
+            code = main(["second", "v1.0.0", "--target", str(self.target)])
         self.assertEqual(code, 2)
-        for wort in ("erste", "zweite", "alpha", "auslassen"):
-            self.assertIn(wort, err.getvalue())
-        self.assertEqual(schnappschuss(self.ziel), davor)
+        for word in ("first", "second", "alpha", "exclude"):
+            self.assertIn(word, err.getvalue())
+        self.assertEqual(snapshot(self.target), before)
 
-    def test_auslassen_resolves_name_clash(self):
-        self.zwei_quellen(auslassen=["alpha"])
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        eintrag = aktualisieren(self.ziel, "zweite", "v1.0.0")
-        self.assertEqual(eintrag["skills"], ["delta"])
-        self.assertEqual((self.ziel / ".github/skills/alpha/SKILL.md").read_text(), "alpha\n")
-        self.assertTrue((self.ziel / ".github/skills/delta/SKILL.md").is_file())
+    def test_exclude_resolves_name_clash(self):
+        self.two_sources(exclude=["alpha"])
+        update(self.target, "first", "v1.0.0")
+        entry = update(self.target, "second", "v1.0.0")
+        self.assertEqual(entry["skills"], ["delta"])
+        self.assertEqual((self.target / ".github/skills/alpha/SKILL.md").read_text(), "alpha\n")
+        self.assertTrue((self.target / ".github/skills/delta/SKILL.md").is_file())
 
-    def test_nur_copies_only_named_skills(self):
-        self.zwei_quellen(nur=["delta"])
-        eintrag = aktualisieren(self.ziel, "zweite", "v1.0.0")
-        self.assertEqual(eintrag["skills"], ["delta"])
-        self.assertFalse((self.ziel / ".github/skills/alpha").exists())
+    def test_only_copies_only_named_skills(self):
+        self.two_sources(only=["delta"])
+        entry = update(self.target, "second", "v1.0.0")
+        self.assertEqual(entry["skills"], ["delta"])
+        self.assertFalse((self.target / ".github/skills/alpha").exists())
 
-    def test_nur_and_auslassen_together_abort(self):
-        self.zwei_quellen(nur=["delta"], auslassen=["alpha"])
-        self._fehler_ohne_aenderung("zweite", "v1.0.0")
+    def test_only_and_exclude_together_abort(self):
+        self.two_sources(only=["delta"], exclude=["alpha"])
+        self._error_without_change("second", "v1.0.0")
 
-    def test_unknown_name_in_nur_or_auslassen_aborts(self):
-        for schluessel in ("nur", "auslassen"):
-            with self.subTest(schluessel=schluessel):
-                self.zwei_quellen(**{schluessel: ["deltaa"]})
-                self._fehler_ohne_aenderung("zweite", "v1.0.0")
+    def test_unknown_name_in_only_or_exclude_aborts(self):
+        for key in ("only", "exclude"):
+            with self.subTest(key=key):
+                self.two_sources(**{key: ["deltaa"]})
+                self._error_without_change("second", "v1.0.0")
 
     def test_invalid_name_in_nur_aborts(self):
-        self.zwei_quellen(nur=["../x"])
-        self._fehler_ohne_aenderung("zweite", "v1.0.0")
+        self.two_sources(only=["../x"])
+        self._error_without_change("second", "v1.0.0")
 
-    def test_custom_pfad_and_lizenz(self):
-        pfad = self.zweite.parent / "dritte"
-        (pfad / "agent/skills/eins").mkdir(parents=True)
-        (pfad / "agent/skills/eins/SKILL.md").write_text("eins\n")
-        (pfad / "doku").mkdir()
-        (pfad / "doku/COPYING").write_text("GPL\n")
-        git(pfad, "init", "--quiet")
-        git(pfad, "add", ".")
-        git(pfad, "commit", "--quiet", "-m", "x")
-        git(pfad, "tag", "v1.0.0")
-        self.schreibe_quellen({"dritte": {"url": pfad.as_uri(), "pfad": "agent/skills",
-                                          "lizenz": "doku/COPYING"}})
-        aktualisieren(self.ziel, "dritte", "v1.0.0")
+    def test_custom_path_and_license(self):
+        path = self.second.parent / "third"
+        (path / "agent/skills/eins").mkdir(parents=True)
+        (path / "agent/skills/eins/SKILL.md").write_text("one\n")
+        (path / "docs").mkdir()
+        (path / "docs/COPYING").write_text("GPL\n")
+        git(path, "init", "--quiet")
+        git(path, "add", ".")
+        git(path, "commit", "--quiet", "-m", "x")
+        git(path, "tag", "v1.0.0")
+        self.write_sources({"third": {"url": path.as_uri(), "path": "agent/skills",
+                                          "license": "docs/COPYING"}})
+        update(self.target, "third", "v1.0.0")
         self.assertEqual(
-            (self.ziel / "tools/fremde-skills/lizenzen/dritte/LICENSE").read_text(), "GPL\n")
-        self.assertTrue((self.ziel / ".github/skills/eins/SKILL.md").is_file())
+            (self.target / "tools/external-skills/licenses/third/LICENSE").read_text(), "GPL\n")
+        self.assertTrue((self.target / ".github/skills/eins/SKILL.md").is_file())
 
-    def test_missing_pfad_or_lizenz_aborts(self):
-        self.schreibe_quellen({"erste": {"url": self.quelle, "pfad": "nirgends"}})
-        self._fehler_ohne_aenderung("erste", "v1.0.0")
-        self.schreibe_quellen({"erste": {"url": self.quelle, "lizenz": "NIRGENDS"}})
-        self._fehler_ohne_aenderung("erste", "v1.0.0")
+    def test_missing_path_or_license_aborts(self):
+        self.write_sources({"first": {"url": self.source_url, "path": "nowhere"}})
+        self._error_without_change("first", "v1.0.0")
+        self.write_sources({"first": {"url": self.source_url, "license": "NOWHERE"}})
+        self._error_without_change("first", "v1.0.0")
 
-    def test_pfad_must_stay_inside_source(self):
-        self.schreibe_quellen({"erste": {"url": self.quelle, "pfad": "../.."}})
-        self._fehler_ohne_aenderung("erste", "v1.0.0")
+    def test_path_must_stay_inside_source(self):
+        self.write_sources({"first": {"url": self.source_url, "path": "../.."}})
+        self._error_without_change("first", "v1.0.0")
 
     def test_second_source_update_leaves_first_untouched(self):
-        self.zwei_quellen(auslassen=["alpha"])
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        erste_skills = schnappschuss(self.ziel / ".github/skills")
-        erster_eintrag = self.stand()["erste"]
-        aktualisieren(self.ziel, "zweite", "v1.0.0")
-        self.assertEqual(self.stand()["erste"], erster_eintrag)
-        self.assertEqual(self.stand()["zweite"]["commit"], self.sha_zweite)
-        nachher = schnappschuss(self.ziel / ".github/skills")
-        for pfad, inhalt in erste_skills.items():
-            self.assertEqual(nachher[pfad], inhalt)
+        self.two_sources(exclude=["alpha"])
+        update(self.target, "first", "v1.0.0")
+        first_skills = snapshot(self.target / ".github/skills")
+        first_entry = self.lock()["first"]
+        update(self.target, "second", "v1.0.0")
+        self.assertEqual(self.lock()["first"], first_entry)
+        self.assertEqual(self.lock()["second"]["commit"], self.sha_second)
+        after = snapshot(self.target / ".github/skills")
+        for path, content in first_skills.items():
+            self.assertEqual(after[path], content)
 
     def test_readme_in_skills_folder_is_left_alone(self):
-        readme = self.ziel / ".github/skills/README.md"
+        readme = self.target / ".github/skills/README.md"
         readme.parent.mkdir(parents=True)
-        readme.write_text("hinweis\n")
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        aktualisieren(self.ziel, "erste", "v1.10.0")
-        self.assertEqual(readme.read_text(), "hinweis\n")
+        readme.write_text("note\n")
+        update(self.target, "first", "v1.0.0")
+        update(self.target, "first", "v1.10.0")
+        self.assertEqual(readme.read_text(), "note\n")
 
-    def _stand_mit(self, skills):
-        pfad = self.ziel / STAND
-        pfad.parent.mkdir(parents=True, exist_ok=True)
-        pfad.write_text(json.dumps({"erste": {"version": "v0.0.1", "skills": skills}}))
+    def _lock_with(self, skills):
+        path = self.target / LOCK
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"first": {"version": "v0.0.1", "skills": skills}}))
 
     def test_invalid_old_skill_names_abort_without_changes(self):
         for name in ["../..", ""]:
             with self.subTest(name=name):
-                self._stand_mit([name])
-                self._fehler_ohne_aenderung("erste", "v1.0.0")
+                self._lock_with([name])
+                self._error_without_change("first", "v1.0.0")
 
-    def _fehler_im_tausch(self, ab_aufruf, nur_einmal):
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        davor = schnappschuss(self.ziel)
-        echt = _MODUL._verschieben
-        zaehler = {"n": 0}
+    def _error_during_swap(self, from_call, only_once):
+        update(self.target, "first", "v1.0.0")
+        before = snapshot(self.target)
+        real = _MODULE._move
+        counter = {"n": 0}
 
-        def kaputt(von, nach):
-            zaehler["n"] += 1
-            if zaehler["n"] == ab_aufruf or (not nur_einmal and zaehler["n"] > ab_aufruf):
-                raise OSError("simulierter Fehler")
-            echt(von, nach)
+        def broken(von, nach):
+            counter["n"] += 1
+            if counter["n"] == from_call or (not only_once and counter["n"] > from_call):
+                raise OSError("simulated error")
+            real(von, nach)
 
         import contextlib
         import io
-        with mock.patch.object(_MODUL, "_verschieben", kaputt), \
+        with mock.patch.object(_MODULE, "_move", broken), \
                 contextlib.redirect_stderr(io.StringIO()) as err:
-            code = main(["erste", "v1.10.0", "--ziel", str(self.ziel)])
-        return code, davor, err.getvalue()
+            code = main(["first", "v1.10.0", "--target", str(self.target)])
+        return code, before, err.getvalue()
 
-    def _kein_staging(self):
-        reste = [p.name for p in (self.ziel / ".github").iterdir() if p.name.startswith(".staging")]
-        self.assertEqual(reste, [])
+    def _no_staging(self):
+        leftovers = [p.name for p in (self.target / ".github").iterdir() if p.name.startswith(".staging")]
+        self.assertEqual(leftovers, [])
 
     def test_write_failure_rolls_back_and_leaves_no_staging(self):
-        code, davor, _ = self._fehler_im_tausch(ab_aufruf=5, nur_einmal=True)
+        code, before, _ = self._error_during_swap(from_call=5, only_once=True)
         self.assertEqual(code, 2)
-        self.assertEqual(schnappschuss(self.ziel), davor)
-        self._kein_staging()
+        self.assertEqual(snapshot(self.target), before)
+        self._no_staging()
 
     def test_failed_rollback_message_names_git_restore(self):
-        code, _, meldung = self._fehler_im_tausch(ab_aufruf=5, nur_einmal=False)
+        code, _, message = self._error_during_swap(from_call=5, only_once=False)
         self.assertEqual(code, 2)
-        self.assertIn("git restore -- .github/skills tools/fremde-skills", meldung)
-        self._kein_staging()
+        self.assertIn("git restore -- .github/skills tools/external-skills", message)
+        self._no_staging()
 
     def test_unknown_version_aborts_without_changes(self):
-        self._fehler_ohne_aenderung("erste", "v9.9.9")
+        self._error_without_change("first", "v9.9.9")
 
     def test_unknown_source_name_aborts_without_changes(self):
-        self._fehler_ohne_aenderung("gibtsnicht", "v1.0.0")
-        self._fehler_ohne_aenderung("../x")
+        self._error_without_change("doesnotexist", "v1.0.0")
+        self._error_without_change("../x")
 
-    def test_missing_or_broken_quellen_json_aborts(self):
-        (self.ziel / QUELLEN).write_text("{kaputt")
-        self._fehler_ohne_aenderung("erste")
-        (self.ziel / QUELLEN).unlink()
-        self._fehler_ohne_aenderung("erste")
+    def test_missing_or_broken_sources_json_aborts(self):
+        (self.target / SOURCES).write_text("{broken")
+        self._error_without_change("first")
+        (self.target / SOURCES).unlink()
+        self._error_without_change("first")
 
-    def test_pruefen_per_source(self):
+    def test_check_per_source(self):
         import contextlib
         import io
-        aktualisieren(self.ziel, "erste", "v1.0.0")
+        update(self.target, "first", "v1.0.0")
         with contextlib.redirect_stdout(io.StringIO()) as out:
-            self.assertEqual(pruefen(self.ziel, "erste"), 1)
-            self.assertIn("erste: neuere Version verfügbar: v1.10.0 (installiert: v1.0.0)",
+            self.assertEqual(check(self.target, "first"), 1)
+            self.assertIn("first: newer version available: v1.10.0 (installed: v1.0.0)",
                           out.getvalue())
-            aktualisieren(self.ziel, "erste", "v1.10.0")
-            self.assertEqual(pruefen(self.ziel, "erste"), 0)
-            self.assertIn("erste: aktuell (v1.10.0)", out.getvalue())
+            update(self.target, "first", "v1.10.0")
+            self.assertEqual(check(self.target, "first"), 0)
+            self.assertIn("first: up to date (v1.10.0)", out.getvalue())
 
-    def test_pruefen_all_sources(self):
+    def test_check_all_sources(self):
         import contextlib
         import io
-        self.zwei_quellen(auslassen=["alpha"])
-        aktualisieren(self.ziel, "erste", "v1.10.0")
+        self.two_sources(exclude=["alpha"])
+        update(self.target, "first", "v1.10.0")
         with contextlib.redirect_stdout(io.StringIO()) as out:
-            self.assertEqual(pruefen(self.ziel), 1)
-            self.assertIn("erste: aktuell (v1.10.0)", out.getvalue())
-            self.assertIn("zweite: neuere Version verfügbar: v1.0.0 (installiert: keine)",
+            self.assertEqual(check(self.target), 1)
+            self.assertIn("first: up to date (v1.10.0)", out.getvalue())
+            self.assertIn("second: newer version available: v1.0.0 (installed: none)",
                           out.getvalue())
-            aktualisieren(self.ziel, "zweite", "v1.0.0")
-            self.assertEqual(pruefen(self.ziel), 0)
+            update(self.target, "second", "v1.0.0")
+            self.assertEqual(check(self.target), 0)
 
     def test_main_without_source_updates_all(self):
-        self.zwei_quellen(auslassen=["alpha"])
-        self.assertEqual(_ruhig(main, ["--ziel", str(self.ziel)]), 0)
-        self.assertEqual(sorted(self.stand()), ["erste", "zweite"])
-        self.assertEqual(self.stand()["erste"]["version"], "v1.10.0")
+        self.two_sources(exclude=["alpha"])
+        self.assertEqual(_quiet(main, ["--target", str(self.target)]), 0)
+        self.assertEqual(sorted(self.lock()), ["first", "second"])
+        self.assertEqual(self.lock()["first"]["version"], "v1.10.0")
 
     def test_main_all_reports_already_updated_on_failure(self):
-        # zweite Quelle kollidiert mit der ersten -> Fehler nach erfolgreicher erster
-        self.zwei_quellen()
+        # second source clashes with the first -> error after the first succeeded
+        self.two_sources()
         import contextlib
         import io
         with contextlib.redirect_stdout(io.StringIO()), \
                 contextlib.redirect_stderr(io.StringIO()) as err:
-            code = main(["--ziel", str(self.ziel)])
+            code = main(["--target", str(self.target)])
         self.assertEqual(code, 2)
-        self.assertIn("Schon aktualisiert: erste", err.getvalue())
-        self.assertEqual(list(self.stand()), ["erste"])
+        self.assertIn("Already updated: first", err.getvalue())
+        self.assertEqual(list(self.lock()), ["first"])
 
-    def test_main_pruefen_exit_codes(self):
-        aktualisieren(self.ziel, "erste", "v1.0.0")
-        self.assertEqual(_ruhig(main, ["--pruefen", "--ziel", str(self.ziel)]), 1)
-        aktualisieren(self.ziel, "erste", "v1.10.0")
-        self.assertEqual(_ruhig(main, ["--pruefen", "--ziel", str(self.ziel)]), 0)
+    def test_main_check_exit_codes(self):
+        update(self.target, "first", "v1.0.0")
+        self.assertEqual(_quiet(main, ["--check", "--target", str(self.target)]), 1)
+        update(self.target, "first", "v1.10.0")
+        self.assertEqual(_quiet(main, ["--check", "--target", str(self.target)]), 0)
 
-    def test_repo_copy_matches_stand(self):
-        stand = json.loads((REPO / STAND).read_text())
-        eintrag = stand["superpowers"]
-        self.assertEqual(eintrag["version"], "v7.0.2")
-        self.assertEqual(eintrag["commit"], "22f0b463e7a5e579904dd6211a520321035526f7")  # Commit hinter dem annotierten Tag (Tag-Objekt: c62ffea)
-        self.assertEqual(len(eintrag["skills"]), 15)
-        for name in eintrag["skills"]:
+    def test_repo_copy_matches_lock(self):
+        lock = json.loads((REPO / LOCK).read_text())
+        entry = lock["superpowers"]
+        self.assertEqual(entry["version"], "v7.0.2")
+        self.assertEqual(entry["commit"], "22f0b463e7a5e579904dd6211a520321035526f7")  # commit behind the annotated tag (tag object: c62ffea)
+        self.assertEqual(len(entry["skills"]), 15)
+        for name in entry["skills"]:
             self.assertTrue((REPO / ".github/skills" / name / "SKILL.md").is_file(), name)
-        self.assertTrue((REPO / "tools/fremde-skills/lizenzen/superpowers/LICENSE").is_file())
+        self.assertTrue((REPO / "tools/external-skills/licenses/superpowers/LICENSE").is_file())
         self.assertFalse((REPO / "tools/superpowers").exists())
-        quellen = json.loads((REPO / QUELLEN).read_text())
-        self.assertEqual(quellen["superpowers"]["url"], eintrag["url"])
+        sources = json.loads((REPO / SOURCES).read_text())
+        self.assertEqual(sources["superpowers"]["url"], entry["url"])
 
 
 if __name__ == "__main__":

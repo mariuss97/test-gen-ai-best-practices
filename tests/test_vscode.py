@@ -1,9 +1,9 @@
-"""Tests für die geteilten VS-Code-Dateien und die .gitignore."""
+"""Tests for the shared VS Code files and the .gitignore."""
 
 import subprocess
 import unittest
 
-from tests.hilfen import REPO, jsonc
+from tests.helpers import REPO, jsonc
 
 
 class VSCodeTest(unittest.TestCase):
@@ -22,10 +22,10 @@ class VSCodeTest(unittest.TestCase):
             self.assertIn(entry, lines)
 
     def test_claude_files_ignored_and_untracked(self):
-        # git check-ignore -q akzeptiert nur einen Pfad, daher je Pfad einzeln prüfen.
-        for pfad in ["CLAUDE.md", ".claude/settings.json"]:
-            r = subprocess.run(["git", "check-ignore", "-q", pfad], cwd=REPO)
-            self.assertEqual(r.returncode, 0, pfad)
+        # git check-ignore -q accepts only one path, so check each path separately.
+        for path in ["CLAUDE.md", ".claude/settings.json"]:
+            r = subprocess.run(["git", "check-ignore", "-q", path], cwd=REPO)
+            self.assertEqual(r.returncode, 0, path)
         tracked = subprocess.run(
             ["git", "ls-files"], cwd=REPO, capture_output=True, text=True, check=True
         ).stdout.splitlines()

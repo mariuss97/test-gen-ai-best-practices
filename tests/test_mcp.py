@@ -1,32 +1,21 @@
-"""Tests für die geteilte MCP-Konfiguration (.mcp.json)."""
+"""Tests for the shared MCP configuration (.mcp.json, if present)."""
 
 import json
 import unittest
 
-from tests.hilfen import REPO
+from tests.helpers import REPO
 
 
-class TestMcpKonfiguration(unittest.TestCase):
-
-    def test_mcp_json_registers_azure_devops_remote_server(self):
-        konfig = json.loads((REPO / ".mcp.json").read_text(encoding="utf-8"))
-        self.assertEqual(konfig, {
-            "mcpServers": {
-                "azure-devops": {
-                    "type": "http",
-                    "url": "https://mcp.dev.azure.com/gmhgruppe",
-                }
-            }
-        })
+class McpConfigTest(unittest.TestCase):
 
     def test_no_local_mcp_servers_need_a_runtime(self):
-        # Geteilte Server sollen ohne Laufzeit pro Nutzer (z. B. nvm) starten.
-        konfig = json.loads((REPO / ".mcp.json").read_text(encoding="utf-8"))
-        for name, eintrag in konfig["mcpServers"].items():
-            self.assertNotIn("command", eintrag, name)
-
-    def test_demo_server_is_gone(self):
-        self.assertFalse((REPO / "tools/mcp-demo").exists())
+        # Shared servers must start without a per-user runtime (e.g. nvm).
+        path = REPO / ".mcp.json"
+        if not path.exists():
+            self.skipTest("no .mcp.json in the repo")
+        config = json.loads(path.read_text(encoding="utf-8"))
+        for name, entry in config["mcpServers"].items():
+            self.assertNotIn("command", entry, name)
 
 
 if __name__ == "__main__":

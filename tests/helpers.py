@@ -1,4 +1,4 @@
-"""Gemeinsame Hilfen für die Tests."""
+"""Shared helpers for the tests."""
 
 import json
 from pathlib import Path
@@ -6,26 +6,26 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 
 
-def frontmatter(pfad):
-    """Liest die Schlüssel/Wert-Zeilen zwischen dem ersten und zweiten `---`."""
-    zeilen = Path(pfad).read_text(encoding="utf-8").splitlines()
-    if not zeilen or zeilen[0].strip() != "---":
+def frontmatter(path):
+    """Reads the key/value lines between the first and second `---`."""
+    lines = Path(path).read_text(encoding="utf-8").splitlines()
+    if not lines or lines[0].strip() != "---":
         return {}
-    daten = {}
-    for zeile in zeilen[1:]:
-        if zeile.strip() == "---":
+    data = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
             break
-        if ":" not in zeile:
+        if ":" not in line:
             continue
-        schluessel, wert = zeile.split(":", 1)
-        wert = wert.strip()
-        if len(wert) >= 2 and wert[0] == wert[-1] and wert[0] in "\"'":
-            wert = wert[1:-1]
-        daten[schluessel.strip()] = wert
-    return daten
+        key, value = line.split(":", 1)
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        data[key.strip()] = value
+    return data
 
 
-def jsonc(pfad):
-    """Liest JSON und ignoriert Zeilen, die mit `//` beginnen (auch eingerückt)."""
-    zeilen = Path(pfad).read_text(encoding="utf-8").splitlines()
-    return json.loads("\n".join(z for z in zeilen if not z.lstrip().startswith("//")))
+def jsonc(path):
+    """Reads JSON and ignores lines starting with `//` (also indented)."""
+    lines = Path(path).read_text(encoding="utf-8").splitlines()
+    return json.loads("\n".join(l for l in lines if not l.lstrip().startswith("//")))

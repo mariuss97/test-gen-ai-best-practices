@@ -1,31 +1,29 @@
 #!/usr/bin/env python3
-"""Holt Skills fremder Quellen (z. B. Superpowers, MIT) als Kopie ins Repo.
+"""Copies skills from external sources (e.g. Superpowers, MIT) into the repo.
 
-Die Quellen stehen von Hand gepflegt in `tools/fremde-skills/quellen.json`. Die
-Skills landen flach in `.github/skills/`, getrennt von den eigenen Skills in
-`.agents/skills/`. Version und Commit je Quelle stehen in
-`tools/fremde-skills/stand.json` (nur vom Skript geschrieben), die Lizenzen in
-`tools/fremde-skills/lizenzen/<quelle>/LICENSE`. Ein Update läuft bewusst von
-Hand: Skript starten, mit `git status` und `git diff --stat` prüfen, committen.
+The sources are maintained by hand in `tools/external-skills/sources.json`. The
+skills land flat in `.github/skills/`, separate from the team's own skills in
+`.agents/skills/`. Version and commit per source are recorded in
+`tools/external-skills/lock.json` (written by the script only), the licenses in
+`tools/external-skills/licenses/<source>/LICENSE`. An update is deliberately
+manual: run the script, review with `git status` and `git diff --stat`, commit.
 
-Optionale Schlüssel je Quelle in `quellen.json`: `pfad` (Standard `skills`),
-`lizenz` (Standard `LICENSE`), `nur` (nur diese Skills übernehmen) und
-`auslassen` (diese Skills nicht übernehmen). `nur` und `auslassen` gehen nicht
-zusammen.
+Optional keys per source in `sources.json`: `path` (default `skills`),
+`license` (default `LICENSE`), `only` (take only these skills) and `exclude`
+(do not take these skills). `only` and `exclude` cannot be combined.
 
-Die kopierten Dateien werden nicht von Hand geändert, sondern nur mit diesem
-Skript erneuert.
+The copied files are never edited by hand, only renewed with this script.
 
-Aufruf: python3 tools/fremde-skills/aktualisieren.py [QUELLE [VERSION]]
-                                                     [--pruefen] [--ziel PFAD]
-Ohne QUELLE werden alle Quellen bearbeitet. Die URL kommt immer aus
-`quellen.json`. Exit-Codes: 0 = erledigt bzw. aktuell, 1 = neuere Version
-verfügbar (nur bei --pruefen), 2 = Fehler.
+Usage: python3 tools/external-skills/update.py [SOURCE [VERSION]]
+                                               [--check] [--target PATH]
+Without SOURCE all sources are processed. The URL always comes from
+`sources.json`. Exit codes: 0 = done or up to date, 1 = newer version
+available (only with --check), 2 = error.
 
-Bei Fehlern vor dem Schreiben bleibt alles unverändert. Geschrieben wird über
-einen Staging-Ordner neben dem Ziel; scheitert der Tausch, wird zurückgerollt.
-Gelingt auch das nicht, sagt die Fehlermeldung ehrlich, dass das Repo teilweise
-geändert sein kann, und nennt den Weg zurück (`git restore`).
+On errors before writing, everything stays unchanged. Writing goes through a
+staging folder next to the target; if the swap fails, it is rolled back. If
+that fails too, the error message says honestly that the repo may be partially
+changed and names the way back (`git restore`).
 """
 
 import argparse
@@ -38,67 +36,67 @@ import sys
 import tempfile
 from pathlib import Path
 
-QUELLEN = "tools/fremde-skills/quellen.json"   # von Hand gepflegt
-STAND = "tools/fremde-skills/stand.json"       # nur vom Skript geschrieben
-LIZENZEN = "tools/fremde-skills/lizenzen"      # <quelle>/LICENSE
-SKILLS = ".github/skills"   # fremde Skills (nur dieses Skript schreibt hier)
-EIGENE = ".agents/skills"   # eigene Skills des Teams (werden nie angefasst)
+SOURCES = "tools/external-skills/sources.json"   # maintained by hand
+LOCK = "tools/external-skills/lock.json"         # written by the script only
+LICENSES = "tools/external-skills/licenses"      # <source>/LICENSE
+SKILLS = ".github/skills"   # external skills (only this script writes here)
+OWN = ".agents/skills"      # the team's own skills (never touched)
 NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
-WEG_ZURUECK = ("Das Repo kann teilweise geändert sein. Zurück geht es mit "
-               "`git restore -- .github/skills tools/fremde-skills`; mit `git status` "
-               "neue, nicht versionierte Ordner prüfen.")
+WAY_BACK = ("The repo may be partially changed. To go back, use "
+            "`git restore -- .github/skills tools/external-skills`; check "
+            "`git status` for new untracked folders.")
 
 
-def _verschieben(quelle, ziel):
-    os.rename(quelle, ziel)
+def _move(src, dst):
+    os.rename(src, dst)
 
 
-def _pruefe_namen(namen, woher):
-    for n in namen:
+def _check_names(names, where):
+    for n in names:
         if not isinstance(n, str) or not NAME.fullmatch(n):
-            raise ValueError(f"Ungültiger Skill-Name in {woher}: {n!r} "
-                             "(erlaubt: Kleinbuchstaben, Ziffern, Bindestriche).")
+            raise ValueError(f"Invalid skill name in {where}: {n!r} "
+                             "(allowed: lowercase letters, digits, hyphens).")
 
 
-def _tauschen(ziel: Path, klon: Path, quelle: dict, name: str, alt, neu, stand_text):
-    """Neue Kopie in Staging vorbereiten, dann tauschen; bei Fehler zurückrollen."""
-    skills = ziel / SKILLS
+def _swap(target: Path, clone: Path, source: dict, name: str, old, new, lock_text):
+    """Prepare the new copy in staging, then swap; roll back on failure."""
+    skills = target / SKILLS
     skills.mkdir(parents=True, exist_ok=True)
-    lizenz_ziel = ziel / LIZENZEN / name / "LICENSE"
+    license_target = target / LICENSES / name / "LICENSE"
     staging = Path(tempfile.mkdtemp(prefix=".staging-", dir=skills.parent))
-    erledigt = []  # Rückgängig-Liste: (von, nach)
+    done = []  # undo list: (from, to)
 
-    def bewegen(von, nach):
-        _verschieben(von, nach)
-        erledigt.append((von, nach))
+    def move(src, dst):
+        _move(src, dst)
+        done.append((src, dst))
 
     try:
         try:
-            for skill in neu:
-                shutil.copytree(klon / quelle["pfad"] / skill, staging / "neu" / skill)
-            shutil.copy2(klon / quelle["lizenz"], staging / "LICENSE")
-            (staging / "stand.json").write_text(stand_text, encoding="utf-8")
-            (staging / "alt").mkdir()
-            lizenz_ziel.parent.mkdir(parents=True, exist_ok=True)
-            (ziel / STAND).parent.mkdir(parents=True, exist_ok=True)
-            for skill in alt:
+            for skill in new:
+                shutil.copytree(clone / source["path"] / skill, staging / "new" / skill)
+            shutil.copy2(clone / source["license"], staging / "LICENSE")
+            (staging / "lock.json").write_text(lock_text, encoding="utf-8")
+            (staging / "old").mkdir()
+            license_target.parent.mkdir(parents=True, exist_ok=True)
+            (target / LOCK).parent.mkdir(parents=True, exist_ok=True)
+            for skill in old:
                 if (skills / skill).exists():
-                    bewegen(skills / skill, staging / "alt" / skill)
-            for skill in neu:
-                bewegen(staging / "neu" / skill, skills / skill)
-            for datei, pfad in (("LICENSE", lizenz_ziel), ("stand.json", ziel / STAND)):
-                if pfad.exists():
-                    bewegen(pfad, staging / "alt" / ("datei-" + datei))
-                bewegen(staging / datei, pfad)
-        except BaseException as fehler:
-            gescheitert = []
-            for von, nach in reversed(erledigt):
+                    move(skills / skill, staging / "old" / skill)
+            for skill in new:
+                move(staging / "new" / skill, skills / skill)
+            for file, path in (("LICENSE", license_target), ("lock.json", target / LOCK)):
+                if path.exists():
+                    move(path, staging / "old" / ("file-" + file))
+                move(staging / file, path)
+        except BaseException as error:
+            failed = []
+            for src, dst in reversed(done):
                 try:
-                    _verschieben(nach, von)
+                    _move(dst, src)
                 except OSError as e:
-                    gescheitert.append(f"{nach}: {e}")
-            if gescheitert:
-                raise OSError(f"{fehler}. Zurückrollen unvollständig. {WEG_ZURUECK}") from fehler
+                    failed.append(f"{dst}: {e}")
+            if failed:
+                raise OSError(f"{error}. Rollback incomplete. {WAY_BACK}") from error
             raise
     finally:
         shutil.rmtree(staging, ignore_errors=True)
@@ -109,196 +107,196 @@ def _git(*args):
                           text=True).stdout.strip()
 
 
-def _versionsnummer(tag):
-    """`v1.10.0` -> (1, 10, 0); alles andere -> None."""
+def _version_number(tag):
+    """`v1.10.0` -> (1, 10, 0); anything else -> None."""
     if not tag.startswith("v"):
         return None
-    teile = tag[1:].split(".")
-    if len(teile) != 3 or not all(t.isdigit() for t in teile):
+    parts = tag[1:].split(".")
+    if len(parts) != 3 or not all(p.isdigit() for p in parts):
         return None
-    return tuple(int(t) for t in teile)
+    return tuple(int(p) for p in parts)
 
 
-def neueste_version(quelle: str) -> str:
-    ausgabe = _git("ls-remote", "--tags", "--refs", quelle, "v*")
+def latest_version(url: str) -> str:
+    output = _git("ls-remote", "--tags", "--refs", url, "v*")
     tags = []
-    for zeile in ausgabe.splitlines():
-        tag = zeile.split("\t")[-1].removeprefix("refs/tags/")
-        nummer = _versionsnummer(tag)
-        if nummer is not None:
-            tags.append((nummer, tag))
+    for line in output.splitlines():
+        tag = line.split("\t")[-1].removeprefix("refs/tags/")
+        number = _version_number(tag)
+        if number is not None:
+            tags.append((number, tag))
     if not tags:
-        raise ValueError(f"Keine Versions-Tags (vX.Y.Z) in {quelle} gefunden.")
+        raise ValueError(f"No version tags (vX.Y.Z) found in {url}.")
     return max(tags)[1]
 
 
-def _lade_json(pfad: Path, was: str) -> dict:
-    if not pfad.is_file():
-        raise ValueError(f"{was} fehlt: {pfad}")
+def _load_json(path: Path, what: str) -> dict:
+    if not path.is_file():
+        raise ValueError(f"{what} is missing: {path}")
     try:
-        daten = json.loads(pfad.read_text(encoding="utf-8"))
-    except ValueError as fehler:
-        raise ValueError(f"{was} ist kein gültiges JSON: {fehler}") from fehler
-    if not isinstance(daten, dict):
-        raise ValueError(f"{was} muss ein JSON-Objekt sein.")
-    return daten
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as error:
+        raise ValueError(f"{what} is not valid JSON: {error}") from error
+    if not isinstance(data, dict):
+        raise ValueError(f"{what} must be a JSON object.")
+    return data
 
 
-def _alter_stand(ziel: Path) -> dict:
-    pfad = ziel / STAND
-    return _lade_json(pfad, STAND) if pfad.is_file() else {}
+def _old_lock(target: Path) -> dict:
+    path = target / LOCK
+    return _load_json(path, LOCK) if path.is_file() else {}
 
 
-def _liste(wert, schluessel, name):
-    if not isinstance(wert, list):
-        raise ValueError(f"`{schluessel}` der Quelle {name} muss eine Liste sein.")
-    _pruefe_namen(wert, f"`{schluessel}` der Quelle {name}")
-    return wert
+def _list(value, key, name):
+    if not isinstance(value, list):
+        raise ValueError(f"`{key}` of source {name} must be a list.")
+    _check_names(value, f"`{key}` of source {name}")
+    return value
 
 
-def _quelle(ziel: Path, name: str) -> dict:
-    """Eintrag aus quellen.json, geprüft und mit Standardwerten ergänzt."""
+def _source(target: Path, name: str) -> dict:
+    """Entry from sources.json, validated and completed with defaults."""
     if not isinstance(name, str) or not NAME.fullmatch(name):
-        raise ValueError(f"Ungültiger Quellname: {name!r} "
-                         "(erlaubt: Kleinbuchstaben, Ziffern, Bindestriche).")
-    quellen = _lade_json(ziel / QUELLEN, QUELLEN)
-    if name not in quellen:
-        raise ValueError(f"Quelle {name!r} steht nicht in {QUELLEN} "
-                         f"(vorhanden: {', '.join(sorted(quellen)) or 'keine'}).")
-    roh = quellen[name]
-    if not isinstance(roh, dict) or not isinstance(roh.get("url"), str) or not roh["url"]:
-        raise ValueError(f"Quelle {name} in {QUELLEN} braucht eine `url`.")
-    eintrag = {"url": roh["url"], "pfad": roh.get("pfad", "skills"),
-               "lizenz": roh.get("lizenz", "LICENSE")}
-    for schluessel in ("pfad", "lizenz"):
-        pfad = Path(str(eintrag[schluessel]))
-        if not isinstance(eintrag[schluessel], str) or not eintrag[schluessel] \
-                or pfad.is_absolute() or ".." in pfad.parts:
-            raise ValueError(f"`{schluessel}` der Quelle {name} muss ein relativer Pfad "
-                             "innerhalb der Quelle sein.")
-    if "nur" in roh and "auslassen" in roh:
-        raise ValueError(f"Quelle {name}: `nur` und `auslassen` gehen nicht zusammen.")
-    for schluessel in ("nur", "auslassen"):
-        if schluessel in roh:
-            eintrag[schluessel] = _liste(roh[schluessel], schluessel, name)
-    return eintrag
+        raise ValueError(f"Invalid source name: {name!r} "
+                         "(allowed: lowercase letters, digits, hyphens).")
+    sources = _load_json(target / SOURCES, SOURCES)
+    if name not in sources:
+        raise ValueError(f"Source {name!r} is not in {SOURCES} "
+                         f"(available: {', '.join(sorted(sources)) or 'none'}).")
+    raw = sources[name]
+    if not isinstance(raw, dict) or not isinstance(raw.get("url"), str) or not raw["url"]:
+        raise ValueError(f"Source {name} in {SOURCES} needs a `url`.")
+    entry = {"url": raw["url"], "path": raw.get("path", "skills"),
+             "license": raw.get("license", "LICENSE")}
+    for key in ("path", "license"):
+        path = Path(str(entry[key]))
+        if not isinstance(entry[key], str) or not entry[key] \
+                or path.is_absolute() or ".." in path.parts:
+            raise ValueError(f"`{key}` of source {name} must be a relative path "
+                             "inside the source.")
+    if "only" in raw and "exclude" in raw:
+        raise ValueError(f"Source {name}: `only` and `exclude` cannot be combined.")
+    for key in ("only", "exclude"):
+        if key in raw:
+            entry[key] = _list(raw[key], key, name)
+    return entry
 
 
-def aktualisieren(ziel: Path, name: str, version: str | None = None) -> dict:
-    ziel = Path(ziel)
-    quelle = _quelle(ziel, name)
-    url = quelle["url"]
+def update(target: Path, name: str, version: str | None = None) -> dict:
+    target = Path(target)
+    source = _source(target, name)
+    url = source["url"]
     if version is None:
-        version = neueste_version(url)
+        version = latest_version(url)
     with tempfile.TemporaryDirectory() as tmp:
-        klon = Path(tmp) / "klon"
+        clone = Path(tmp) / "clone"
         try:
-            _git("clone", "--quiet", "--depth", "1", "--branch", version, url, str(klon))
-        except subprocess.CalledProcessError as fehler:
+            _git("clone", "--quiet", "--depth", "1", "--branch", version, url, str(clone))
+        except subprocess.CalledProcessError as error:
             raise ValueError(
-                f"Version {version} aus {url} nicht abrufbar: {fehler.stderr.strip()}"
-            ) from fehler
-        commit = _git("-C", str(klon), "rev-parse", "HEAD")
-        if not (klon / quelle["pfad"]).is_dir():
-            raise ValueError(f"Ordner {quelle['pfad']} in {name} {version} nicht gefunden.")
-        if not (klon / quelle["lizenz"]).is_file():
-            raise ValueError(f"Lizenzdatei {quelle['lizenz']} in {name} {version} nicht gefunden.")
-        vorhanden = sorted(p.parent.name for p in (klon / quelle["pfad"]).glob("*/SKILL.md"))
-        _pruefe_namen(vorhanden, f"{name} {version}/{quelle['pfad']}")
-        for schluessel in ("nur", "auslassen"):
-            fehlen = [n for n in quelle.get(schluessel, []) if n not in vorhanden]
-            if fehlen:
-                raise ValueError(f"`{schluessel}` der Quelle {name} nennt Skills, die es in "
-                                 f"{version} nicht gibt: {', '.join(fehlen)}")
-        neu = [n for n in vorhanden
-               if ("nur" not in quelle or n in quelle["nur"]) and n not in quelle.get("auslassen", [])]
-        if not neu:
-            raise ValueError(f"Keine Skills aus {name} {version} zu übernehmen.")
+                f"Version {version} from {url} could not be fetched: {error.stderr.strip()}"
+            ) from error
+        commit = _git("-C", str(clone), "rev-parse", "HEAD")
+        if not (clone / source["path"]).is_dir():
+            raise ValueError(f"Folder {source['path']} not found in {name} {version}.")
+        if not (clone / source["license"]).is_file():
+            raise ValueError(f"License file {source['license']} not found in {name} {version}.")
+        available = sorted(p.parent.name for p in (clone / source["path"]).glob("*/SKILL.md"))
+        _check_names(available, f"{name} {version}/{source['path']}")
+        for key in ("only", "exclude"):
+            missing = [n for n in source.get(key, []) if n not in available]
+            if missing:
+                raise ValueError(f"`{key}` of source {name} names skills that do not exist "
+                                 f"in {version}: {', '.join(missing)}")
+        new = [n for n in available
+               if ("only" not in source or n in source["only"]) and n not in source.get("exclude", [])]
+        if not new:
+            raise ValueError(f"No skills to take from {name} {version}.")
 
-        stand = _alter_stand(ziel)
-        alt = stand.get(name, {}).get("skills", [])
-        _pruefe_namen(alt, f"{STAND} ({name})")
+        lock = _old_lock(target)
+        old = lock.get(name, {}).get("skills", [])
+        _check_names(old, f"{LOCK} ({name})")
 
-        # Erst alles prüfen ...
-        eigene = [n for n in neu if (ziel / EIGENE / n).exists()]
-        if eigene:
+        # Check everything first ...
+        own = [n for n in new if (target / OWN / n).exists()]
+        if own:
             raise ValueError(
-                f"Eigene Skills in {EIGENE} mit gleichem Namen vorhanden, Abbruch: "
-                + ", ".join(eigene)
+                f"Own skills with the same name exist in {OWN}, aborting: "
+                + ", ".join(own)
             )
-        for andere, eintrag in stand.items():
-            if andere == name:
+        for other, entry in lock.items():
+            if other == name:
                 continue
-            doppelt = [n for n in neu if n in eintrag.get("skills", [])]
-            if doppelt:
+            duplicates = [n for n in new if n in entry.get("skills", [])]
+            if duplicates:
                 raise ValueError(
-                    f"Skills {', '.join(doppelt)} gibt es in den Quellen {andere} und {name}, "
-                    f"Abbruch. In {QUELLEN} bei {name} mit `auslassen` ausnehmen.")
-        unbekannt = [n for n in neu if (ziel / SKILLS / n).exists() and n not in alt]
-        if unbekannt:
+                    f"Skills {', '.join(duplicates)} exist in both sources {other} and {name}, "
+                    f"aborting. Exclude them in {SOURCES} for {name} with `exclude`.")
+        unknown = [n for n in new if (target / SKILLS / n).exists() and n not in old]
+        if unknown:
             raise ValueError(
-                f"Ordner in {SKILLS}, die nicht zu {name} gehören, Abbruch: "
-                + ", ".join(unbekannt)
+                f"Folders in {SKILLS} that do not belong to {name}, aborting: "
+                + ", ".join(unknown)
             )
 
-        # ... dann schreiben (Staging, Tausch, Rollback).
-        eintrag = {"url": url, "version": version, "commit": commit, "skills": neu}
-        neuer_stand = {**stand, name: eintrag}
-        stand_text = json.dumps(dict(sorted(neuer_stand.items())), indent=2,
-                                ensure_ascii=False) + "\n"
-        _tauschen(ziel, klon, quelle, name, alt, neu, stand_text)
-    return eintrag
+        # ... then write (staging, swap, rollback).
+        entry = {"url": url, "version": version, "commit": commit, "skills": new}
+        new_lock = {**lock, name: entry}
+        lock_text = json.dumps(dict(sorted(new_lock.items())), indent=2,
+                               ensure_ascii=False) + "\n"
+        _swap(target, clone, source, name, old, new, lock_text)
+    return entry
 
 
-def _alle_namen(ziel: Path) -> list[str]:
-    return sorted(_lade_json(ziel / QUELLEN, QUELLEN))
+def _all_names(target: Path) -> list[str]:
+    return sorted(_load_json(target / SOURCES, SOURCES))
 
 
-def pruefen(ziel: Path, name: str | None = None) -> int:
-    ziel = Path(ziel)
-    namen = _alle_namen(ziel) if name is None else [name]
-    stand = _alter_stand(ziel)
+def check(target: Path, name: str | None = None) -> int:
+    target = Path(target)
+    names = _all_names(target) if name is None else [name]
+    lock = _old_lock(target)
     code = 0
-    for n in namen:
-        quelle = _quelle(ziel, n)
-        installiert = stand.get(n, {}).get("version")
-        neueste = neueste_version(quelle["url"])
-        if installiert is not None and _versionsnummer(installiert) is not None \
-                and _versionsnummer(installiert) >= _versionsnummer(neueste):
-            print(f"{n}: aktuell ({installiert})")
+    for n in names:
+        source = _source(target, n)
+        installed = lock.get(n, {}).get("version")
+        latest = latest_version(source["url"])
+        if installed is not None and _version_number(installed) is not None \
+                and _version_number(installed) >= _version_number(latest):
+            print(f"{n}: up to date ({installed})")
         else:
-            print(f"{n}: neuere Version verfügbar: {neueste} "
-                  f"(installiert: {installiert or 'keine'})")
+            print(f"{n}: newer version available: {latest} "
+                  f"(installed: {installed or 'none'})")
             code = 1
     return code
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Skills fremder Quellen als Kopie ins Repo holen.")
-    parser.add_argument("quelle", nargs="?",
-                        help="Name aus quellen.json (Standard: alle Quellen)")
+    parser = argparse.ArgumentParser(description="Copy skills from external sources into the repo.")
+    parser.add_argument("source", nargs="?",
+                        help="name from sources.json (default: all sources)")
     parser.add_argument("version", nargs="?",
-                        help="Tag, z. B. v7.0.2 (Standard: neueste; nur mit QUELLE)")
-    parser.add_argument("--pruefen", action="store_true",
-                        help="nur prüfen, ob eine neuere Version existiert")
-    parser.add_argument("--ziel", type=Path, default=Path(__file__).resolve().parents[2],
-                        help="Hauptordner des Repos")
+                        help="tag, e.g. v7.0.2 (default: latest; only with SOURCE)")
+    parser.add_argument("--check", action="store_true",
+                        help="only check whether a newer version exists")
+    parser.add_argument("--target", type=Path, default=Path(__file__).resolve().parents[2],
+                        help="root folder of the repo")
     args = parser.parse_args(argv)
-    fertig = []
+    done = []
     try:
-        if args.pruefen:
-            return pruefen(args.ziel, args.quelle)
-        namen = [args.quelle] if args.quelle else _alle_namen(args.ziel)
-        for name in namen:
-            stand = aktualisieren(args.ziel, name, args.version)
-            fertig.append(name)
-            print(f"{name} {stand['version']} kopiert ({len(stand['skills'])} Skills). "
-                  "Mit `git status` und `git diff --stat` prüfen.")
-    except (ValueError, OSError, subprocess.CalledProcessError) as fehler:
-        meldung = getattr(fehler, "stderr", None) or fehler
-        print(f"Fehler: {str(meldung).strip()}", file=sys.stderr)
-        if fertig and len(namen) > 1:
-            print(f"Schon aktualisiert: {', '.join(fertig)}", file=sys.stderr)
+        if args.check:
+            return check(args.target, args.source)
+        names = [args.source] if args.source else _all_names(args.target)
+        for name in names:
+            entry = update(args.target, name, args.version)
+            done.append(name)
+            print(f"{name} {entry['version']} copied ({len(entry['skills'])} skills). "
+                  "Review with `git status` and `git diff --stat`.")
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+        message = getattr(error, "stderr", None) or error
+        print(f"Error: {str(message).strip()}", file=sys.stderr)
+        if done and len(names) > 1:
+            print(f"Already updated: {', '.join(done)}", file=sys.stderr)
         return 2
     return 0
 

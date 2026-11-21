@@ -3,25 +3,25 @@
 Demo für einen gemeinsamen GenAI-Rahmen mit GitHub Copilot in VS Code
 (Remote-SSH, Monorepo). Das Repo zeigt, wo geteilte und private Anpassungen
 liegen. Die Anleitung für das Team steht in
-[docs/genai-rahmen.md](docs/genai-rahmen.md).
+[docs/genai-framework.md](docs/genai-framework.md).
 
 ## Was eingerichtet ist
 
 | Datei | Zweck |
 |-------|-------|
 | `AGENTS.md` | Hauptanweisungen für alle |
-| `projekte/beispiel-app/AGENTS.md` | Beispielprojekt mit eigener Regel |
+| `projects/example-app/AGENTS.md` | Beispielprojekt mit eigener Regel |
 | `.github/instructions/markdown.instructions.md` | Stilregeln für `**/*.md` |
-| `.agents/skills/commit-nachricht/` | Eigener Beispiel-Skill |
+| `.agents/skills/commit-message/` | Eigener Beispiel-Skill |
 | `.github/agents/reviewer.agent.md` | Agent `reviewer`, darf nur lesen und suchen |
 | `.mcp.json` | Meldet den Azure-DevOps-MCP-Server `azure-devops` an (Remote-Server `https://mcp.dev.azure.com/gmhgruppe`) |
 | `.vscode/settings.json` | `chat.useNestedAgentsMdFiles: true` |
 | `.vscode/extensions.json` | Empfiehlt GitHub Copilot (`github.copilot-chat`) |
 | `.github/skills/` (15 Skills und `README.md`) | Fremde Skills: Kopie von Superpowers v7.0.2, getrennt von den eigenen in `.agents/skills/` |
-| `tools/fremde-skills/` | Update-Skript, Quellenliste `quellen.json`, `stand.json`, Lizenzen |
+| `tools/external-skills/` | Update-Skript, Quellenliste `sources.json`, `lock.json`, Lizenzen |
 | `.gitignore` | Hält Claude-Dateien aus dem Repo |
-| `docs/genai-rahmen.md` | Anleitung für das Team |
-| `~/.agents/skills/privat-beispiel/` | Privater Skill, liegt außerhalb des Repos |
+| `docs/genai-framework.md` | Anleitung für das Team |
+| `~/.agents/skills/private-example/` | Privater Skill, liegt außerhalb des Repos |
 
 ## Prüfliste für die Demo
 
@@ -37,16 +37,16 @@ Nach jeder Änderung eine **neue** Chat-Sitzung starten.
 - [ ] 1. Den Ordner per Remote-SSH öffnen und als vertrauenswürdig markieren.
 - [ ] 2. „Chat: Open Customizations“ öffnen:
   - Instructions: `AGENTS.md`, `markdown.instructions.md`
-  - Skills: `commit-nachricht` (Workspace), `privat-beispiel` (persönlich)
+  - Skills: `commit-message` (Workspace), `private-example` (persönlich)
   - Agents: `reviewer`
   - Hinweis: Wer lokal eine `CLAUDE.md` hat, sieht sie dort zusätzlich, weil
     VS Code sie im eingebauten Modus liest. Das betrifft nur diesen einen
     Rechner.
-- [ ] 3. Im Chat `/` tippen: `commit-nachricht` und `privat-beispiel` werden
+- [ ] 3. Im Chat `/` tippen: `commit-message` und `private-example` werden
   angeboten.
 - [ ] 4. In der Agent-Auswahl ist `reviewer` wählbar.
-- [ ] 5. Im Chat nach einer Datei in `projekte/beispiel-app/` fragen. In den
-  Referenzen erscheint `projekte/beispiel-app/AGENTS.md`.
+- [ ] 5. Im Chat nach einer Datei in `projects/example-app/` fragen. In den
+  Referenzen erscheint `projects/example-app/AGENTS.md`.
 - [ ] 6. „MCP: List Servers“: `azure-devops` aus `.mcp.json` ist gelistet.
   Server starten und mit dem Microsoft-Konto anmelden (Entra ID). Dann im Chat
   fragen: „Liste die Projekte in gmhgruppe auf.“ Die Antwort nutzt ein
@@ -59,7 +59,7 @@ Nach jeder Änderung eine **neue** Chat-Sitzung starten.
 - [ ] 8. Superpowers: „Chat: Open Customizations“ zeigt die Skills (zum
   Beispiel `brainstorming`, `writing-plans`) als Workspace-Skills, und im Chat
   ist `/brainstorming` aufrufbar. Im Terminal meldet
-  `python3 tools/fremde-skills/aktualisieren.py --pruefen` den Stand.
+  `python3 tools/external-skills/update.py --check` den Stand.
 - [ ] 9. Die Punkte 2 bis 6 und 8 in beiden Agent-Modi wiederholen, soweit die
   Auswahl angeboten wird.
 - [ ] 10. Im Terminal `git status`: Der private Skill, `CLAUDE.md` und

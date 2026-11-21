@@ -8,7 +8,7 @@ Plugin-Empfehlung. Außerdem ersetzt der Remote-MCP-Server von Azure DevOps
 (Organisation `gmhgruppe`) den Demo-MCP-Server. Fremde Skills liegen getrennt
 von den eigenen in `.github/skills/` (eigene weiter in `.agents/skills/`).
 Späterer Nachtrag: Das Update-Skript kennt mehrere Quellen und liegt unter
-`tools/fremde-skills/` (siehe Entscheidung 14).
+`tools/external-skills/` (siehe Entscheidung 14).
 
 ## Absicht
 
@@ -242,7 +242,7 @@ Einrichtung, und Updates bleiben im Repo nachvollziehbar.
 | MCP-Server | `.mcp.json` im Hauptordner | Format `mcpServers`. Keine Geheimnisse eintragen. Nur Server, deren Laufzeit für alle auf dem Server systemweit verfügbar ist. |
 | Editor-Einstellungen | `.vscode/settings.json` | Nur, was für alle gleich sein muss. |
 | Empfohlene Erweiterungen | `.vscode/extensions.json` | |
-| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills, Stand in `tools/fremde-skills/stand.json` | Nie von Hand ändern, nur über `tools/fremde-skills/aktualisieren.py`. |
+| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills, Stand in `tools/external-skills/lock.json` | Nie von Hand ändern, nur über `tools/external-skills/update.py`. |
 | Debug-Konfigurationen | `.vscode/launch.json` | Unverändert wie bisher, nicht Teil der Demo. |
 
 ### Privat: im Home auf dem Linux-Rechner
@@ -281,27 +281,27 @@ gehören.
 | Datei | Zweck | Woran man das Erkennen prüft |
 |-------|-------|------------------------------|
 | `AGENTS.md` (neu) | Übernimmt den Inhalt der heutigen `CLAUDE.md` (Zweck des Repos, Deutsch, Hinweis zur VS-Code-Prüfung) und verweist auf die Anleitung. Ersetzt den Superpowers-Hook mit dem Hinweis, vor jeder Aufgabe zu prüfen, ob ein Skill passt, und dafür den Skill `using-superpowers` zu lesen. | Erscheint unter „Instructions“; wird in Antworten als Referenz genannt. |
-| `projekte/beispiel-app/AGENTS.md` und `README.md` (neu) | Beispielprojekt mit einer eigenen, gut erkennbaren Regel. | Frage zu einer Datei im Projekt: Die Antwort nennt diese `AGENTS.md` als Referenz. |
+| `projects/example-app/AGENTS.md` und `README.md` (neu) | Beispielprojekt mit einer eigenen, gut erkennbaren Regel. | Frage zu einer Datei im Projekt: Die Antwort nennt diese `AGENTS.md` als Referenz. |
 | `.github/instructions/markdown.instructions.md` (neu) | Stilregeln für Doku, `applyTo: "**/*.md"`. | Erscheint unter „Instructions“; greift beim Bearbeiten von `.md`-Dateien. |
-| `.agents/skills/commit-nachricht/SKILL.md` (neu) | Schreibt eine Commit-Nachricht aus den Änderungen. Beispielformat: `<bereich>: <Beschreibung im Imperativ>`, Leerzeile, Stichpunkte. Im Skill als Beispiel gekennzeichnet, das das Team durch sein echtes Format ersetzt. | Erscheint unter „Skills“ als Workspace-Skill und als `/commit-nachricht`. |
+| `.agents/skills/commit-message/SKILL.md` (neu) | Schreibt eine Commit-Nachricht aus den Änderungen. Beispielformat: `<bereich>: <Beschreibung im Imperativ>`, Leerzeile, Stichpunkte. Im Skill als Beispiel gekennzeichnet, das das Team durch sein echtes Format ersetzt. | Erscheint unter „Skills“ als Workspace-Skill und als `/commit-message`. |
 | `.github/agents/reviewer.agent.md` (neu) | Prüft Änderungen, darf nur lesen und suchen, nichts ändern. | Erscheint in der Agent-Auswahl als „reviewer“. |
 | `.mcp.json` (neu) | Meldet den Remote-MCP-Server von Azure DevOps an: Name `azure-devops`, `type: http`, URL `https://mcp.dev.azure.com/gmhgruppe`. Keine Laufzeit auf dem Server nötig, Anmeldung per Microsoft Entra ID in VS Code. | „MCP: List Servers“ zeigt `azure-devops`. Nach der Anmeldung liefert eine Frage nach den Projekten von `gmhgruppe` Ergebnisse. |
 | `.vscode/settings.json` (neu) | `chat.useNestedAgentsMdFiles: true`, mit Kommentar warum. Sonst nichts. | Einstellung ist im Workspace-Tab gesetzt. |
 | `.vscode/extensions.json` (neu) | Empfiehlt die Copilot-Erweiterung. | Unter Erweiterungen „@recommended“. |
-| `tools/fremde-skills/aktualisieren.py` (neu) | Holt eine Superpowers-Version per `git clone` (Standard: neuester Tag `v*`) und ersetzt nur die Ordner, die in `stand.json` stehen. Bricht ohne Änderung ab, wenn ein neuer Skill wie ein eigener Ordner heißt oder das Holen scheitert. `--pruefen` meldet, ob es eine neuere Version gibt. Nur Standardbibliothek und `git`. | `python3 tools/fremde-skills/aktualisieren.py --pruefen` meldet „aktuell“. |
-| `tools/fremde-skills/stand.json` (neu, vom Skript geschrieben) | Quelle, Version, Commit, Liste der kopierten Skill-Ordner. | Steht auf `v7.0.2`. |
-| `tools/fremde-skills/lizenzen/superpowers/LICENSE` (neu, vom Skript kopiert) | MIT-Lizenz von Superpowers, Pflicht bei Kopien. | |
+| `tools/external-skills/update.py` (neu) | Holt eine Superpowers-Version per `git clone` (Standard: neuester Tag `v*`) und ersetzt nur die Ordner, die in `lock.json` stehen. Bricht ohne Änderung ab, wenn ein neuer Skill wie ein eigener Ordner heißt oder das Holen scheitert. `--check` meldet, ob es eine neuere Version gibt. Nur Standardbibliothek und `git`. | `python3 tools/external-skills/update.py --check` meldet „aktuell“. |
+| `tools/external-skills/lock.json` (neu, vom Skript geschrieben) | Quelle, Version, Commit, Liste der kopierten Skill-Ordner. | Steht auf `v7.0.2`. |
+| `tools/external-skills/licenses/superpowers/LICENSE` (neu, vom Skript kopiert) | MIT-Lizenz von Superpowers, Pflicht bei Kopien. | |
 | `.github/skills/<15 Superpowers-Skills>/` (neu, vom Skript kopiert) und `.github/skills/README.md` | Die Skills von Superpowers `v7.0.2`, unverändert. | Erscheinen unter „Skills“ als Workspace-Skills; `/brainstorming` ist aufrufbar. |
 | `.gitignore` (geändert) | Siehe oben. | |
-| `docs/genai-rahmen.md` (neu) | Anleitung für das Team, allgemein gehalten, siehe unten. | |
+| `docs/genai-framework.md` (neu) | Anleitung für das Team, allgemein gehalten, siehe unten. | |
 | `README.md` (geändert) | Kurz: was eingerichtet ist, Link zur Anleitung, und die Prüfliste für die Demo-Dateien (siehe unten). | |
-| `~/.agents/skills/privat-beispiel/SKILL.md` (neu, **außerhalb des Repos**, im Home des Nutzers auf diesem Rechner) | Zeigt, dass private Skills erkannt werden. | Erscheint unter „Skills“ als persönlicher Skill; `git status` zeigt nichts. |
+| `~/.agents/skills/private-example/SKILL.md` (neu, **außerhalb des Repos**, im Home des Nutzers auf diesem Rechner) | Zeigt, dass private Skills erkannt werden. | Erscheint unter „Skills“ als persönlicher Skill; `git status` zeigt nichts. |
 
 `CLAUDE.md` und `.claude/settings.json` bleiben lokal beim Nutzer liegen,
 unverändert und gitignored. Die heutige `CLAUDE.md` sagt noch, `.claude/` werde
 eingecheckt. Das passt der Nutzer bei Bedarf selbst an.
 
-### Anleitung für das Team (`docs/genai-rahmen.md`)
+### Anleitung für das Team (`docs/genai-framework.md`)
 
 Kurz und zum Kopieren ins Monorepo gedacht. Ins Monorepo wandern die Struktur
 und diese Anleitung. Die Demo-Dateien sind nur Beispiele. Deshalb ist die
@@ -355,8 +355,8 @@ Beispiel. Inhalt:
    | Privates in `~/.copilot/…`, `~/.agents/skills/` | `~/.claude/…` | verschieben |
 
 7. **Superpowers aktualisieren:**
-   - Prüfen: `python3 tools/fremde-skills/aktualisieren.py --pruefen`
-   - Aktualisieren: `python3 tools/fremde-skills/aktualisieren.py` (neueste
+   - Prüfen: `python3 tools/external-skills/update.py --check`
+   - Aktualisieren: `python3 tools/external-skills/update.py` (neueste
      Version) oder mit Versionsangabe, z. B. `… v7.0.3`
    - Danach `git diff --stat` ansehen, die Release-Notes von Superpowers lesen,
      committen und per Pull Request ins Team geben.
@@ -367,13 +367,13 @@ Beispiel. Inhalt:
 1. Repo-Hauptordner per Remote-SSH öffnen und als vertrauenswürdig markieren.
 2. „Chat: Open Customizations“ öffnen:
    - Instructions: `AGENTS.md`, `markdown.instructions.md`
-   - Skills: `commit-nachricht` (Workspace), `privat-beispiel` (persönlich)
+   - Skills: `commit-message` (Workspace), `private-example` (persönlich)
    - Agents: `reviewer`
-3. Im Chat `/` tippen: `commit-nachricht` und `privat-beispiel` werden
+3. Im Chat `/` tippen: `commit-message` und `private-example` werden
    angeboten.
 4. Agent-Auswahl: `reviewer` ist wählbar.
-5. Im Chat nach einer Datei in `projekte/beispiel-app/` fragen: In den
-   Referenzen erscheint `projekte/beispiel-app/AGENTS.md`.
+5. Im Chat nach einer Datei in `projects/example-app/` fragen: In den
+   Referenzen erscheint `projects/example-app/AGENTS.md`.
 6. „MCP: List Servers“: `azure-devops` aus `.mcp.json` ist gelistet. Starten,
    mit dem Microsoft-Konto anmelden und im Chat nach den Projekten in
    `gmhgruppe` fragen.
@@ -381,7 +381,7 @@ Beispiel. Inhalt:
 8. Superpowers: „Chat: Open Customizations“ zeigt die Superpowers-Skills
    (z. B. `brainstorming`, `writing-plans`) als Workspace-Skills, und im Chat
    ist `/brainstorming` aufrufbar. Im Terminal meldet
-   `python3 tools/fremde-skills/aktualisieren.py --pruefen` den Stand.
+   `python3 tools/external-skills/update.py --check` den Stand.
 9. Punkte 2 bis 6 und 8 in beiden Agent-Modi wiederholen, soweit die Auswahl
    angeboten wird.
 10. Im Terminal `git status`: Der private Skill, `CLAUDE.md` und `.claude/`
@@ -412,7 +412,7 @@ Diese Punkte habe ich festgelegt, sie wurden nicht ausdrücklich besprochen:
    experimentelle Einstellung für den eingebauten Modus.
 6. Hooks werden nur dokumentiert, nicht vorgeführt.
 7. Ein privater Beispiel-Skill wird in deinem Home auf diesem Rechner angelegt.
-8. Die Anleitung liegt in `docs/genai-rahmen.md`. Sie ist allgemein, die
+8. Die Anleitung liegt in `docs/genai-framework.md`. Sie ist allgemein, die
    Prüfliste für die Demo steht im README.
 9. Statt eines Demo-MCP-Servers ist der Remote-MCP-Server von Azure DevOps
    eingetragen (Nutzerentscheidung, Organisation `gmhgruppe`). Meine
@@ -431,11 +431,11 @@ Diese Punkte habe ich festgelegt, sie wurden nicht ausdrücklich besprochen:
     Skills in `.agents/skills/` (Weg C1, Trennung per Nachtrag auf Wunsch des
     Nutzers). Meine Festlegungen dazu: Alle 15 Skills werden
     kopiert, nichts wird ausgelassen. Das Skript ist in Python geschrieben und
-    holt die Dateien per `git`. Der Stand steht in `tools/fremde-skills/`, nicht
+    holt die Dateien per `git`. Der Stand steht in `tools/external-skills/`, nicht
     im Skill-Ordner. Die Lizenz wird mitkopiert. `AGENTS.md` ersetzt den
     Hook. Nachtrag: Das Skript liest eine Quellenliste
-    (`tools/fremde-skills/quellen.json`), Superpowers ist der erste Eintrag.
-    Der Stand aller Quellen steht in einer `stand.json`, die Lizenzen unter
-    `tools/fremde-skills/lizenzen/<quelle>/`. Gleiche Skill-Namen in zwei
+    (`tools/external-skills/sources.json`), Superpowers ist der erste Eintrag.
+    Der Stand aller Quellen steht in einer `lock.json`, die Lizenzen unter
+    `tools/external-skills/licenses/<quelle>/`. Gleiche Skill-Namen in zwei
     Quellen löst `auslassen`.
 15. Das README enthält keinen Abschnitt mehr zu Claude Code.

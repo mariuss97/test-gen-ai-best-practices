@@ -1,5 +1,5 @@
 ---
-name: commit-nachricht
+name: commit-message
 description: Schreibt eine Commit-Nachricht aus den aktuellen Änderungen. Verwenden, wenn der Nutzer um eine Commit-Nachricht bittet oder fragt, wie er seine Änderungen beschreiben soll.
 ---
 
