@@ -1,202 +1,248 @@
-# GenAI-Rahmen für VS Code und Copilot
+# GenAI framework for VS Code and Copilot
 
-Diese Anleitung beschreibt, wo geteilte und private KI-Anpassungen liegen. Sie
-gilt für VS Code 1.147 mit Remote-SSH und GitHub Copilot. Immer den Hauptordner
-des Repos öffnen und als vertrauenswürdig markieren. Sonst sperrt VS Code
-Agents, MCP-Server aus dem Repo und Teile der Workspace-Einstellungen.
+This guide describes where shared and private AI customizations live. It
+applies to VS Code 1.147 with Remote-SSH and GitHub Copilot. Always open the
+main folder of the repo and mark it as trusted. Otherwise VS Code blocks
+agents, MCP servers from the repo and parts of the workspace settings.
 
-Die Orte sind werkzeugneutral gewählt, wo es geht. Heute nutzt das Team nur
-Copilot, andere Agenten lassen sich später ergänzen (siehe unten).
+The locations are tool-neutral where possible. Today the team uses only
+Copilot. Other agents can be added later (see below).
 
-## Was liegt wo
+## What goes where
 
-Geteilt heißt: im Repo, eingecheckt, gilt für alle.
+Shared means: in the repo, checked in, applies to everyone.
 
-| Was | Ort | Hinweis |
-|-----|-----|---------|
-| Hauptanweisungen für alle | `AGENTS.md` im Hauptordner | Einzige Hauptdatei |
-| Anweisungen für ein Projekt | `<projekt>/AGENTS.md` | Liegt beim Code des Projekts |
-| Regeln nach Dateimuster | `.github/instructions/<thema>.instructions.md` mit `applyTo` | `applyTo` bezieht sich auf den Hauptordner |
-| Skills | `.agents/skills/<name>/SKILL.md` | Ordnername = `name` im Frontmatter |
+| What | Location | Note |
+|------|----------|------|
+| Main instructions for everyone | `AGENTS.md` in the main folder | The only main file |
+| Instructions for one project | `<project>/AGENTS.md` | Lives next to the project's code |
+| Rules by file pattern | `.github/instructions/<topic>.instructions.md` with `applyTo` | `applyTo` is relative to the main folder |
+| Skills | `.agents/skills/<name>/SKILL.md` | Folder name = `name` in the frontmatter |
 | Agents | `.github/agents/<name>.agent.md` | |
 | Hooks | `.github/hooks/` | |
-| MCP-Server | `.mcp.json` im Hauptordner | Format `mcpServers` |
-| Editor-Einstellungen | `.vscode/settings.json` | Nur, was für alle gleich sein muss |
-| Empfohlene Erweiterungen | `.vscode/extensions.json` | Schlägt nur vor, installiert nichts |
-| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills in `.agents/skills/` | Stand in `tools/external-skills/lock.json` |
+| MCP servers | None shipped; `.mcp.json` in the main folder if the team decides | Format `mcpServers` |
+| Editor settings | `.vscode/settings.json` | Only what must be the same for everyone |
+| Recommended extensions | `.vscode/extensions.json` | Only suggests, installs nothing |
+| External skills (Superpowers) | `.github/skills/<name>/` as a copy, kept apart from the own skills in `.agents/skills/` | Status in `tools/external-skills/lock.json` |
 
-Privat heißt: im Home-Verzeichnis auf dem Linux-Rechner. VS Code löst `~` in
-einem Remote-Fenster auf dem Server auf. Private Dateien liegen also pro
-Entwickler auf dem Server, nicht auf Windows und nie im Repo.
+Private means: in the home directory on the Linux machine. In a remote window,
+VS Code resolves `~` on the server. So private files live per developer on the
+server, not on Windows and never in the repo.
 
-| Was | Ort |
-|-----|-----|
-| Persönliche Daueranweisungen | `~/.copilot/instructions/<name>.instructions.md` mit `applyTo: "**"` |
-| Persönliche Regeln nach Dateimuster | `~/.copilot/instructions/<thema>.instructions.md` |
+| What | Location |
+|------|----------|
+| Personal standing instructions | `~/.copilot/instructions/<name>.instructions.md` with `applyTo: "**"` |
+| Personal rules by file pattern | `~/.copilot/instructions/<topic>.instructions.md` |
 | Skills | `~/.agents/skills/<name>/SKILL.md` |
 | Agents | `~/.copilot/agents/<name>.agent.md` |
 | Hooks | `~/.copilot/hooks/` |
-| MCP-Server | Copilot-Modus: `~/.copilot/mcp-config.json`. Eingebauter Modus: „MCP: Open Remote User Configuration“ |
-| VS-Code-Einstellungen | Remote-Einstellungen: „Preferences: Open Remote Settings“ (Datei `~/.vscode-server/data/Machine/settings.json`) |
-| Plugins zum Ausprobieren | In der Plugin-Ansicht von VS Code installieren. Gilt nur für einen selbst |
+| MCP servers | `~/.copilot/mcp-config.json` (see "Private MCP servers") |
+| VS Code settings | Remote settings: "Preferences: Open Remote Settings" (file `~/.vscode-server/data/Machine/settings.json`) |
+| Plugins to try out | Install them in the VS Code plugin view. They apply only to you |
 
-Rangfolge der Einstellungen: Standard, User, Remote, Workspace, Richtlinie. Der
-Workspace (`.vscode/settings.json`) schlägt also User und Remote. Einfache
-Werte und Listen werden ersetzt, Objekte zusammengeführt. Einige Einstellungen
-gelten nur global, zum Beispiel `git.path`. Es gibt kein privates Gegenstück zu
-`.vscode/settings.json`.
+Settings precedence: default, user, remote, workspace, policy. So the
+workspace (`.vscode/settings.json`) beats user and remote. Simple values and
+lists are replaced, objects are merged. Some settings apply only globally, for
+example `git.path`. There is no private counterpart to `.vscode/settings.json`.
 
-## Regeln
+## Rules
 
-- In `.vscode/settings.json` nur, was für alle gleich sein muss. Niemand kann
-  es privat übersteuern.
-- Keine Geheimnisse in `.mcp.json` oder anderen eingecheckten Dateien.
-- Geteilte MCP-Server bevorzugt als Remote-Server über HTTP, wie Azure DevOps
-  (`https://mcp.dev.azure.com/<organisation>`). Lokale Server nur mit
-  Laufzeiten, die auf dem Server systemweit installiert sind, nicht pro Nutzer
-  (zum Beispiel über nvm).
-- Private Skills bekommen den Präfix `privat-`. So kollidieren sie nicht mit
-  geteilten Skills.
-- Privates immer ins Home, auch für Claude Code (`~/.claude/`).
-- Fremde Skills (heute Superpowers) nie von Hand ändern, nur über ihr
-  Update-Skript. Eigene Anpassungen gehören in eigene Skills.
-- Neue Fremdquellen vorher im Team abstimmen (Vorgehen siehe „Fremde Skills
-  aktualisieren“). Skills können Skripte
-  mitbringen, die auf dem Server laufen.
-- Neue geteilte Anpassungen zuerst privat ausprobieren, dann ins Repo
-  verschieben.
+- Put only what must be the same for everyone in `.vscode/settings.json`.
+  Nobody can override it privately.
+- No secrets in `.mcp.json` or other checked-in files.
+- Shared MCP servers should preferably be remote servers over HTTP, like Azure
+  DevOps (`https://mcp.dev.azure.com/<organization>`). Use local servers only
+  with runtimes that are installed system-wide on the server, not per user (for
+  example through nvm).
+- Private skills get the prefix `private-`. This way they do not collide with
+  shared skills.
+- Always put private things in the home directory, also for Claude Code
+  (`~/.claude/`).
+- Never edit external skills (today Superpowers) by hand, only through their
+  update script. Put your own changes in your own skills.
+- Agree on new external sources with the team first (procedure: see "Updating
+  external skills"). Skills can bring scripts that run on the server.
+- Try new shared customizations privately first, then move them into the repo.
 
-Superpowers liegt als Kopie im Repo und nicht als Plugin. Das braucht keine
-Einrichtung, alle haben dieselbe Version, und jedes Update ist ein prüfbarer
-Diff. Die Skills heißen dann `/brainstorming` statt `/superpowers:brainstorming`.
+Superpowers lives in the repo as a copy and not as a plugin. This needs no
+setup, everyone has the same version, and every update is a reviewable diff.
+The skills are then called `/brainstorming` instead of
+`/superpowers:brainstorming`.
 
-Bei der Kopie entfällt der Hook des Plugins, der `using-superpowers` zu
-Sitzungsbeginn lädt. Die `AGENTS.md` des Repos braucht deshalb diesen Hinweis,
-zum Kopieren:
+With the copy, the plugin's hook that loads `using-superpowers` at session
+start is missing. The repo's `AGENTS.md` therefore needs this hint, ready to
+copy:
 
 ```markdown
-Prüfe vor jeder Aufgabe, ob ein Skill passt. Lies dafür zuerst den Skill
+Before each task, check whether a skill fits. To do so, first read the skill
 `using-superpowers`.
 ```
 
-`superpowers:<name>` in den Superpowers-Skills meint den Skill `<name>` unter `.github/skills/`. Diesen Satz nimmst du am besten ebenfalls in die `AGENTS.md` auf.
+`superpowers:<name>` in the Superpowers skills means the skill `<name>` under
+`.github/skills/`. It is best to add this sentence to `AGENTS.md` as well.
 
-## Private Ordner anlegen
+## Create private folders
 
-Einmalig auf dem Linux-Rechner:
+Once, on the Linux machine:
 
 ```bash
 mkdir -p ~/.copilot/instructions ~/.copilot/agents ~/.copilot/hooks ~/.agents/skills
 ```
 
-## Prüfen, ob alles erkannt wird
+## Private MCP servers
 
-Nach Änderungen eine neue Chat-Sitzung starten.
+The repo ships no MCP server. Each developer adds MCP servers privately on the
+Linux host in `~/.copilot/mcp-config.json` (or `$COPILOT_HOME/mcp-config.json`).
 
-| Was prüfen | Wie |
-|------------|-----|
-| Anweisungen, Skills, Agents | „Chat: Open Customizations“. Geteilte erscheinen als Workspace, private als persönlich |
-| Skills als Befehl | Im Chat `/` tippen |
-| Agents | In der Agent-Auswahl |
-| Anweisungen im Einsatz | In den Referenzen einer Chat-Antwort steht die genutzte Datei |
-| MCP-Server | „MCP: List Servers“: Quelle `.mcp.json`, Status läuft |
-| Empfohlene Erweiterungen | Erweiterungen, Filter „@recommended“ |
-| Nichts Privates im Repo | `git status` |
+- VS Code reads this file by default (setting `chat.mcp.discovery.enabled`,
+  source "copilot", on by default). It lists the servers in "MCP: List
+  Servers" with the source "GitHub Copilot CLI".
+- The Copilot CLI reads the same file.
+- "MCP: Open Remote User Configuration" offers it as "Copilot Remote
+  Configuration (Recommended)".
 
-Im Repo `test-gen-ai-best-practices` steht die konkrete Prüfliste für die
-Demo-Dateien im README des Demo-Repos.
+Example with the remote Azure DevOps server:
 
-## Bestehendes im Monorepo übernehmen
+```json
+{
+  "mcpServers": {
+    "azure-devops": {
+      "type": "http",
+      "url": "https://mcp.dev.azure.com/gmhgruppe"
+    }
+  }
+}
+```
 
-| Vorhanden | Was tun |
-|-----------|---------|
-| `.github/copilot-instructions.md` | Inhalt in `AGENTS.md` übernehmen, Datei löschen. Sonst laden beide, und Inhalte doppeln sich |
-| `.github/prompts/*.prompt.md` | In Skills unter `.agents/skills/` umwandeln |
-| `.github/chatmodes/*.chatmode.md` | Als `.agent.md` nach `.github/agents/` verschieben |
-| `.github/skills/` mit eigenen Skills | Nach `.agents/skills/` verschieben. `.github/skills/` ist für fremde Skills reserviert |
-| `.vscode/mcp.json` | Von Hand nach `.mcp.json` übertragen (`servers` wird zu `mcpServers`), dann die alte Datei löschen. VS Code 1.147 bietet dafür keinen Befehl |
-| KI-Einstellungen in `.vscode/settings.json` | Prüfen, ob sie für alle gelten sollen. Persönliches in die Remote-Einstellungen verschieben |
+Run `chmod 600 ~/.copilot/mcp-config.json`. The file needs no secrets: you
+sign in through Microsoft Entra ID when the server starts.
 
-## Später Claude Code dazunehmen
+Prerequisites for the Azure DevOps remote server:
 
-Claude Code liest Skills und Agents aus `.claude/`. Die geteilten Skills und
-Agents dieser Struktur findet es deshalb vorerst nicht. Die Ordnernamen bleiben,
-wie sie sind. Für später gilt diese Übertragung:
+- The organization is backed by Microsoft Entra ID.
+- The host reaches `https://mcp.dev.azure.com` over HTTPS. "Connection
+  refused" usually means a firewall or proxy.
 
-| Teil | Für Claude Code | Aufwand |
-|------|-----------------|---------|
-| `AGENTS.md` im Hauptordner | `CLAUDE.md` mit `@AGENTS.md`, dann aus `.gitignore` nehmen | keiner |
-| Superpowers-Kopie in `.github/skills/` | Zieht mit den anderen Skills nach `.claude/skills/` um (Zielordner im Skript anpassen). Oder Claude Code installiert das Plugin selbst | klein |
-| `.mcp.json` | Liest Claude Code direkt. Der Remote-Server von Azure DevOps braucht dort aber eine eigene App-Registrierung in Entra ID | klein |
-| Skills in `.agents/skills/` | Gleiches Format, aber Claude Code sucht nur in `.claude/skills/`. Ordner verschieben, nicht verlinken, sonst zeigt VS Code jeden Skill doppelt | klein |
-| `AGENTS.md` pro Projekt | Je Projekt eine `CLAUDE.md` mit `@AGENTS.md` | klein |
-| Regeln in `.github/instructions/` | Nach `.claude/rules/`, im Frontmatter wird `applyTo` zu `paths` | mechanisch |
-| Agents in `.github/agents/` | Nach `.claude/agents/`, andere Werkzeugnamen im Frontmatter | jeden Agent umschreiben |
-| Hooks in `.github/hooks/` | Anderes Format in `.claude/settings.json` | neu schreiben |
-| Privates in `~/.copilot/…`, `~/.agents/skills/` | Nach `~/.claude/…` | verschieben |
+Optionally restrict the server with headers, for example
+`"headers": {"X-MCP-Readonly": "true"}` or
+`"headers": {"X-MCP-Toolsets": "repos,wiki,wit"}`.
 
-Skills, Regeln und Agents liegen danach unter `.claude/`, und `CLAUDE.md` wird eingecheckt. Beides steht heute in der `.gitignore`, `git add` verweigert sie dann. Nimm `.claude/` und `CLAUDE.md` aus der `.gitignore` und lass nur `.claude/settings.local.json` und `CLAUDE.local.md` ignoriert.
+If the team later wants a shared server, it goes into `.mcp.json` at the repo
+root (format `mcpServers`). The rule above still applies: shared servers
+preferably remote over HTTP, local ones only with a system-wide runtime.
 
-Private Claude-Dateien gehören nach `~/.claude/CLAUDE.md` und
-`~/.claude/settings.json`. Diese Zeilen gehören in die `.gitignore`: `CLAUDE.md`,
-`CLAUDE.local.md`, `.claude/` und `.superpowers/` (der Skill `brainstorming`
-legt dort Sitzungsdaten an). Hat das Repo Python-Tests, kommt `__pycache__/` dazu.
+## Check that everything is detected
 
-## Fremde Skills aktualisieren
+Start a new chat session after changes.
 
-Die Quellen stehen in `tools/external-skills/sources.json`, Superpowers ist der
-erste Eintrag. Der Stand je Quelle steht in `tools/external-skills/lock.json`,
-die Lizenzen liegen unter `tools/external-skills/licenses/<quelle>/`.
+| What to check | How |
+|---------------|-----|
+| Instructions, skills, agents | "Chat: Open Customizations". Shared ones appear as workspace, private ones as personal |
+| Skills as commands | Type `/` in the chat |
+| Agents | In the agent picker |
+| Instructions in use | The references of a chat answer show the file that was used |
+| MCP servers | "MCP: List Servers": private servers show the source "GitHub Copilot CLI", status running |
+| Recommended extensions | Extensions, filter "@recommended" |
+| Nothing private in the repo | `git status` |
 
-| Schritt | Befehl oder Aktion |
-|---------|--------------------|
-| Alle Quellen prüfen | `python3 tools/external-skills/update.py --check` |
-| Eine Quelle prüfen | `python3 tools/external-skills/update.py --check superpowers` |
-| Alle Quellen auf die neueste Version bringen | `python3 tools/external-skills/update.py` |
-| Eine Quelle auf die neueste Version bringen | `python3 tools/external-skills/update.py superpowers` |
-| Eine Quelle auf eine feste Version bringen | `python3 tools/external-skills/update.py superpowers v7.0.3` |
-| Änderungen ansehen | `git status` (neue Ordner) und `git diff --stat` |
-| Release-Notes lesen | [Superpowers auf GitHub](https://github.com/obra/superpowers) |
-| Ins Team geben | Committen und Pull Request öffnen |
+The concrete checklist for the demo files is in the README of the demo repo
+`test-gen-ai-best-practices`.
 
-Zurück auf eine ältere Version geht genauso, mit deren Tag. Das Skript bricht
-ohne Änderung ab, wenn das Holen scheitert oder ein neuer Skill wie ein eigener
-Ordner oder wie ein Skill einer anderen Quelle heißt.
+## Take over existing files in the monorepo
 
-### Neue Quelle hinzufügen
+| Existing | What to do |
+|----------|------------|
+| `.github/copilot-instructions.md` | Move the content into `AGENTS.md`, delete the file. Otherwise both load and the content is duplicated |
+| `.github/prompts/*.prompt.md` | Convert to skills under `.agents/skills/` |
+| `.github/chatmodes/*.chatmode.md` | Move to `.github/agents/` as `.agent.md` |
+| `.github/skills/` with own skills | Move to `.agents/skills/`. `.github/skills/` is reserved for external skills |
+| `.vscode/mcp.json` | Move the servers by hand to the private `~/.copilot/mcp-config.json` (`servers` becomes `mcpServers`), or to `.mcp.json` if the team decides to share them, then delete the old file. VS Code 1.147 offers no command for this |
+| AI settings in `.vscode/settings.json` | Check whether they should apply to everyone. Move personal ones to the remote settings |
 
-1. Die Quelle im Team abstimmen und die Lizenz prüfen. Sie muss das Kopieren
-   erlauben.
-2. Einen Eintrag in `tools/external-skills/sources.json` anlegen. Der Name der
-   Quelle besteht aus Kleinbuchstaben, Ziffern und Bindestrichen.
-3. `python3 tools/external-skills/update.py <name>` ausführen.
-4. Mit `git status` prüfen, welche Ordner neu sind. Neue Skills sind noch nicht
-   versioniert und fehlen deshalb in `git diff`. Darum zuerst
-   `git add .github/skills tools/external-skills`, dann mit
-   `git diff --cached --stat` ansehen, was ins Repo kommt.
-5. Committen und Pull Request öffnen.
+## Adding Claude Code later
 
-Je Quelle gibt es diese Schlüssel:
+Claude Code reads skills and agents from `.claude/`. So for now it does not
+find the shared skills and agents of this structure. The folder names stay as
+they are. For later, this transfer applies:
 
-| Schlüssel | Bedeutung | Standard |
-|-----------|-----------|----------|
-| `url` | Git-URL der Quelle (Pflicht) | |
-| `pfad` | Ordner in der Quelle mit `<skill>/SKILL.md` | `skills` |
-| `lizenz` | Lizenzdatei in der Quelle | `LICENSE` |
-| `nur` | Liste: nur diese Skills übernehmen | alle |
-| `auslassen` | Liste: diese Skills nicht übernehmen | keine |
+| Part | For Claude Code | Effort |
+|------|-----------------|--------|
+| `AGENTS.md` in the main folder | `CLAUDE.md` with `@AGENTS.md`, then remove it from `.gitignore` | none |
+| Superpowers copy in `.github/skills/` | Moves with the other skills to `.claude/skills/` (adjust the target folder in the script). Or Claude Code installs the plugin itself | small |
+| `.mcp.json` (if the team shares servers) | Claude Code reads it directly. The Azure DevOps remote server needs its own app registration in Entra ID there | small |
+| Skills in `.agents/skills/` | Same format, but Claude Code searches only in `.claude/skills/`. Move the folders, do not link them, otherwise VS Code shows every skill twice | small |
+| `AGENTS.md` per project | One `CLAUDE.md` with `@AGENTS.md` per project | small |
+| Rules in `.github/instructions/` | To `.claude/rules/`, `applyTo` becomes `paths` in the frontmatter | mechanical |
+| Agents in `.github/agents/` | To `.claude/agents/`, different tool names in the frontmatter | rewrite each agent |
+| Hooks in `.github/hooks/` | Different format in `.claude/settings.json` | rewrite |
+| Private files in `~/.copilot/…`, `~/.agents/skills/` | To `~/.claude/…` | move |
 
-`nur` und `auslassen` gehen nicht zusammen. Tippfehler in beiden Listen fallen
-auf, weil das Skript jeden Namen in der Quelle sucht.
+After that, skills, rules and agents live under `.claude/`, and `CLAUDE.md` is
+checked in. Both are in the `.gitignore` today, and `git add` then refuses
+them. Remove `.claude/` and `CLAUDE.md` from the `.gitignore` and keep only
+`.claude/settings.local.json` and `CLAUDE.local.md` ignored.
 
-### Gleiche Skill-Namen in zwei Quellen
+Private Claude files belong in `~/.claude/CLAUDE.md` and
+`~/.claude/settings.json`. These lines belong in the `.gitignore`: `CLAUDE.md`,
+`CLAUDE.local.md`, `.claude/` and `.superpowers/` (the skill `brainstorming`
+stores session data there). If the repo has Python tests, add `__pycache__/`.
 
-Heißt ein Skill in zwei Quellen gleich, bricht das Skript ab und nennt beide
-Quellen. Nimm den Skill bei einer Quelle mit `auslassen` aus, zum Beispiel
-`"auslassen": ["brainstorming"]`, und starte das Skript neu.
+## Updating external skills
 
-### Private Repos
+The sources are listed in `tools/external-skills/sources.json`, Superpowers is
+the first entry. The status of each source is in
+`tools/external-skills/lock.json`, the licenses are under
+`tools/external-skills/licenses/<source>/`.
 
-Private Repos, etwa in Azure DevOps, laufen über die normalen Git-Zugangsdaten
-auf dem Rechner. Das Skript ruft nur `git` auf. Funktioniert `git clone <url>`
-dort, funktioniert auch das Skript. Zugangsdaten gehören nie in `sources.json`.
+| Step | Command or action |
+|------|-------------------|
+| Check all sources | `python3 tools/external-skills/update.py --check` |
+| Check one source | `python3 tools/external-skills/update.py --check superpowers` |
+| Update all sources to the latest version | `python3 tools/external-skills/update.py` |
+| Update one source to the latest version | `python3 tools/external-skills/update.py superpowers` |
+| Update one source to a fixed version | `python3 tools/external-skills/update.py superpowers v7.0.3` |
+| Review the changes | `git status` (new folders) and `git diff --stat` |
+| Read the release notes | [Superpowers on GitHub](https://github.com/obra/superpowers) |
+| Hand it to the team | Commit and open a pull request |
+
+Going back to an older version works the same way, with its tag. The script
+aborts without changes if fetching fails or if a new skill has the same name as
+an own folder or as a skill from another source.
+
+### Adding a new source
+
+1. Agree on the source with the team and check the license. It must allow
+   copying.
+2. Add an entry to `tools/external-skills/sources.json`. The source name
+   consists of lowercase letters, digits and hyphens.
+3. Run `python3 tools/external-skills/update.py <name>`.
+4. Use `git status` to check which folders are new. New skills are not tracked
+   yet and therefore missing from `git diff`. So first run
+   `git add .github/skills tools/external-skills`, then use
+   `git diff --cached --stat` to see what comes into the repo.
+5. Commit and open a pull request.
+
+Each source has these keys:
+
+| Key | Meaning | Default |
+|-----|---------|---------|
+| `url` | Git URL of the source (required) | |
+| `path` | Folder in the source with `<skill>/SKILL.md` | `skills` |
+| `license` | License file in the source | `LICENSE` |
+| `only` | List: take only these skills | all |
+| `exclude` | List: do not take these skills | none |
+
+`only` and `exclude` cannot be combined. Typos in either list show up, because
+the script looks up every name in the source.
+
+### Same skill name in two sources
+
+If a skill has the same name in two sources, the script aborts and names both
+sources. Leave the skill out for one source with `exclude`, for example
+`"exclude": ["brainstorming"]`, and run the script again.
+
+### Private repos
+
+Private repos, for example in Azure DevOps, use the normal Git credentials on
+the machine. The script only calls `git`. If `git clone <url>` works there, the
+script works too. Never put credentials into `sources.json`.

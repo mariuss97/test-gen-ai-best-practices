@@ -1,6 +1,6 @@
-# Anweisungen für die Beispiel-App
+# Instructions for the example app
 
-Diese Regeln gelten nur für Dateien in `projects/example-app/`.
+These rules apply only to files in `projects/example-app/`.
 
-- Beginne jede Antwort zu Dateien in diesem Ordner mit dem Satz:
-  „Regeln aus projects/example-app/AGENTS.md aktiv.“
+- Begin every answer about files in this folder with the sentence:
+  "Rules from projects/example-app/AGENTS.md active."

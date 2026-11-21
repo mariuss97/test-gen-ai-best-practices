@@ -1,3 +1,5 @@
+> **Historical record.** This is the original execution plan, written in German. File and folder names in it are outdated; see `docs/superpowers/specs/2026-11-21-genai-framework-design.md` for the current design.
+
 # GenAI-Rahmen (Demo) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

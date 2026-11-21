@@ -1,13 +1,13 @@
-# Fremde Skills
+# External skills
 
-Dieser Ordner enthält nur Skills aus fremden Quellen, heute die Skills von
-[Superpowers](https://github.com/obra/superpowers) (Lizenz MIT). Die Quellen
-stehen in `tools/external-skills/sources.json`, die Lizenzen unter
-`tools/external-skills/licenses/<quelle>/LICENSE`. Welche Ordner zu welcher Quelle
-gehören und welche Version installiert ist, steht in
+This folder contains only skills from external sources, today the skills from
+[Superpowers](https://github.com/obra/superpowers) (MIT license). The sources
+are listed in `tools/external-skills/sources.json`, the licenses are under
+`tools/external-skills/licenses/<source>/LICENSE`. Which folders belong to
+which source and which version is installed is recorded in
 `tools/external-skills/lock.json`.
 
-- Nicht von Hand ändern. Das nächste Update überschreibt die Änderungen.
-- Aktualisieren nur mit `python3 tools/external-skills/update.py`, dann
-  `git diff --stat` prüfen und committen.
-- Eigene Skills gehören nach `.agents/skills/`.
+- Do not edit by hand. The next update overwrites your changes.
+- Update only with `python3 tools/external-skills/update.py`, then check
+  `git diff --stat` and commit.
+- Own skills belong in `.agents/skills/`.

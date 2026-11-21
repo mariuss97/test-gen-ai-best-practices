@@ -1,441 +1,469 @@
-# Design: Gemeinsamer GenAI-Rahmen für VS Code und Copilot im Monorepo
+# Design: shared GenAI framework for VS Code and Copilot in a monorepo
 
-Stand: 2026-11-21 · Status: freigegeben (Ordnernamen bleiben wie beschrieben).
-Nachträge am selben Tag, ebenfalls freigegeben: Claude-Dateien kommen nicht ins
-Repo. Die Skills von Superpowers liegen als Kopie im Repo und werden per Skript
-aktualisiert. Diese Kopie ersetzt die zwischenzeitlich geplante
-Plugin-Empfehlung. Außerdem ersetzt der Remote-MCP-Server von Azure DevOps
-(Organisation `gmhgruppe`) den Demo-MCP-Server. Fremde Skills liegen getrennt
-von den eigenen in `.github/skills/` (eigene weiter in `.agents/skills/`).
-Späterer Nachtrag: Das Update-Skript kennt mehrere Quellen und liegt unter
-`tools/external-skills/` (siehe Entscheidung 14).
+Date: 2026-11-21 · Status: approved, updated to the current state (folder names
+stay as described).
 
-## Absicht
+This document describes the current design. Decisions that changed during the
+work are folded into the text. The history of what was considered and why
+something was chosen is kept in "Approaches".
 
-Ein Softwareteam arbeitet in einem Monorepo mit vielen Projekten. Alle nutzen
-VS Code auf Windows und verbinden sich per Remote-SSH mit einem VS-Code-Server
-auf einem Linux-Rechner. Dort liegen auch die Repositories, und jeder
-Entwickler hat dort ein eigenes Home-Verzeichnis. Ob jeder einen eigenen Clone
-hat oder ob sich mehrere einen Checkout teilen, ist offen. Der Entwurf
-funktioniert in beiden Fällen, weil Privates nur im Home liegt. Das Team nutzt
-GitHub Copilot. Das Repo ist für Copilot in VS Code ausgelegt, und
-Claude-Dateien werden nicht eingecheckt.
+## Purpose
 
-Das Team möchte einen einheitlichen Rahmen für die Entwicklung mit GenAI:
+A software team works in a monorepo with many projects. Everyone uses VS Code
+on Windows and connects over Remote-SSH to a VS Code server on a Linux
+machine. The repositories live there too, and each developer has their own
+home directory there. Whether each developer has their own clone or several
+share one checkout is open. The design works in both cases, because private
+files live only in the home directory. The team uses GitHub Copilot. The repo
+is designed for Copilot in VS Code, and Claude files are not checked in.
 
-- Geteilte Anpassungen (Anweisungen, Skills, Agents, MCP-Server, Einstellungen)
-  liegen im Monorepo, werden eingecheckt und gelten für alle.
-- Jeder kann außerdem privat experimentieren, ohne dass etwas davon im Repo
-  landet.
-- Heute wird nur Copilot genutzt, die Lösung soll aber möglichst
-  werkzeugneutral sein, damit später andere Agenten (Claude Code, Codex usw.)
-  ohne Umzug dazukommen können.
-- Die Skills von Superpowers liegen als Kopie im Repo und stehen allen ohne
-  Einrichtung zur Verfügung. Ein Update ist eine bewusste, im Repo sichtbare
-  Änderung.
+The team wants a uniform framework for development with GenAI:
 
-Dieses Repo (`test-gen-ai-best-practices`) dient als Demo. Der Nutzer öffnet es
-anschließend per Remote-SSH in VS Code und prüft, ob alles erkannt wird. Danach
-überträgt er die Struktur in das echte Monorepo.
+- Shared customizations (instructions, skills, agents, settings) live in the
+  monorepo, are checked in and apply to everyone.
+- Everyone can also experiment privately without any of it landing in the repo.
+  This includes MCP servers: the repo ships none, and each developer adds them
+  privately.
+- Today only Copilot is used, but the solution should be as tool-neutral as
+  possible, so that other agents (Claude Code, Codex and so on) can be added
+  later without a move.
+- The Superpowers skills live in the repo as a copy and are available to
+  everyone without setup. An update is a deliberate change that is visible in
+  the repo.
 
-## Ziele
+This repo (`test-gen-ai-best-practices`) is a demo. The user then opens it over
+Remote-SSH in VS Code and checks that everything is detected. After that, they
+transfer the structure to the real monorepo.
 
-- VS Code erkennt alle geteilten Anpassungen ohne Zusatzschritte, sobald der
-  Hauptordner des Repos per Remote-SSH geöffnet und als vertrauenswürdig
-  markiert ist.
-- Private Anpassungen liegen im Home-Verzeichnis auf dem Linux-Rechner und
-  werden ebenfalls erkannt.
-- Wo es geht, liegen Dateien an werkzeugneutralen Orten, die VS Code in beiden
-  Agent-Modi (eingebaut/„Local“ und „Copilot“) und weitere Werkzeuge lesen.
-- Eine kurze Anleitung erklärt dem Team, was wo hingehört, und enthält eine
-  Prüfliste.
-- Die Struktur lässt sich eins zu eins ins Monorepo übertragen.
+## Goals
 
-## Nicht-Ziele
+- VS Code detects all shared customizations without extra steps, as soon as
+  the main folder of the repo is opened over Remote-SSH and marked as trusted.
+- Private customizations live in the home directory on the Linux machine and
+  are detected as well.
+- Where possible, files live in tool-neutral locations that VS Code reads in
+  both agent modes (built-in/"Local" and "Copilot") and that other tools read.
+- A short guide explains to the team what goes where and contains a checklist.
+- The structure can be transferred one to one into the monorepo.
 
-- Keine echten Inhalte für die Projekte im Monorepo. Die Demo enthält nur
-  kleine, gut erkennbare Beispiele.
-- Keine organisationsweiten Einstellungen (Organisations-Anweisungen bei
-  GitHub, Enterprise-Richtlinien).
-- Kein Multi-Root-Workspace. Das Team öffnet immer den Hauptordner des Repos.
-- Keine Prompt-Dateien (`.prompt.md`). Skills übernehmen diese Rolle (sie
-  lassen sich als `/name` aufrufen), und die Einstellung für Prompt-Ordner ist
-  als veraltet markiert.
-- Keine Claude-Dateien im Repo. `CLAUDE.md` und `.claude/` werden nicht
-  eingecheckt, sondern gitignored. Lokale Dateien des Nutzers bleiben
-  unverändert liegen. Claude Code liest Skills und Agents aus `.claude/`,
-  findet die geteilten Skills und Agents dieser Struktur also nicht. Das ist in
-  Ordnung, solange nur Copilot genutzt wird. Die Anleitung nennt den Weg für
-  später (siehe „Anleitung“).
+## Non-goals
 
-## Anti-Ziele
+- No real content for the projects in the monorepo. The demo contains only
+  small, easily recognizable examples.
+- No organization-wide settings (organization instructions at GitHub,
+  enterprise policies).
+- No multi-root workspace. The team always opens the main folder of the repo.
+- No prompt files (`.prompt.md`). Skills take over this role (they can be
+  called as `/name`), and the setting for prompt folders is marked as
+  deprecated.
+- No Claude files in the repo. `CLAUDE.md` and `.claude/` are not checked in
+  but gitignored. The user's local files stay unchanged. Claude Code reads
+  skills and agents from `.claude/`, so it does not find the shared skills and
+  agents of this structure. That is fine as long as only Copilot is used. The
+  guide describes the way for later (see "Guide for the team").
+- No MCP server shipped in the repo (see decision 9).
 
-Das Ergebnis ist gescheitert, auch wenn es technisch läuft, wenn:
+## Anti-goals
 
-- private Dateien versehentlich eingecheckt werden können,
-- die Struktur nur im eingebauten Agent-Modus funktioniert, der laut Doku im
-  Februar 2027 entfällt,
-- jeder Entwickler erst etwas einrichten muss, damit die **geteilten**
-  Anpassungen wirken,
-- derselbe Inhalt an zwei Stellen gepflegt werden muss (z. B. in `AGENTS.md`
-  und `CLAUDE.md`).
+The result has failed, even if it works technically, if:
 
-## Rahmenbedingungen (geprüft)
+- private files can be checked in by accident,
+- the structure works only in the built-in agent mode, which is removed in
+  February 2027 according to the docs,
+- every developer must first set something up before the **shared**
+  customizations take effect,
+- the same content has to be maintained in two places (for example in
+  `AGENTS.md` and `CLAUDE.md`).
 
-Geprüft am 2026-11-21 gegen die VS-Code-Doku und den Quellcode von VS Code
-1.147.0. Diese Version läuft auf dem Server, die Copilot-Erweiterung ist
+## Constraints (verified)
+
+Verified on 2026-11-21 against the VS Code docs and the source code of VS Code
+1.147.0. This version runs on the server, the Copilot extension is
 `github.copilot` 1.323.0.
 
-**Standardorte, die VS Code durchsucht** (Quelle: `promptFileLocations.ts`):
+**Standard locations that VS Code searches** (source: `promptFileLocations.ts`):
 
-| Typ | Im Repo | Im Home (`~`) |
-|-----|---------|---------------|
+| Type | In the repo | In the home directory (`~`) |
+|------|-------------|-----------------------------|
 | Skills | `.agents/skills`, `.github/skills`, `.claude/skills` | `~/.agents/skills`, `~/.copilot/skills`, `~/.claude/skills` |
-| Gezielte Anweisungen | `.github/instructions` (auch Unterordner), `.claude/rules` | `~/.copilot/instructions`, `~/.claude/rules` |
+| Targeted instructions | `.github/instructions` (also subfolders), `.claude/rules` | `~/.copilot/instructions`, `~/.claude/rules` |
 | Agents | `.github/agents`, `.claude/agents` | `~/.copilot/agents`, `~/.claude/agents` |
 | Hooks | `.github/hooks`, `.claude/settings.json`, `.claude/settings.local.json` | `~/.copilot/hooks`, `~/.claude/settings.json` |
-| Projektanweisungen | `AGENTS.md`, `.github/copilot-instructions.md`, `CLAUDE.md` | – |
-| MCP-Server | `.mcp.json` (Hauptordner), `.vscode/mcp.json` (alt) | `~/.copilot/mcp-config.json` (Copilot-Modus) |
+| Project instructions | `AGENTS.md`, `.github/copilot-instructions.md`, `CLAUDE.md` | – |
+| MCP servers | `.mcp.json` (main folder), `.vscode/mcp.json` (old) | `~/.copilot/mcp-config.json` (Copilot mode) |
 
-Weitere Fakten:
+More facts:
 
-- **`~` ist das Home auf dem Linux-Rechner.** In einem Remote-Fenster löst VS
-  Code `~` über das Remote-System auf (`pathService.userHome()`). Private
-  Dateien liegen also pro Entwickler auf dem Server, nicht auf Windows.
-- **`.gitignore` spielt für die Standardordner keine Rolle.** VS Code liest
-  sie direkt ein. Für diesen Entwurf ist das nur eine Randnotiz, weil private
-  Dateien ohnehin außerhalb des Repos liegen.
-- **Copilot (auch die CLI) liest Skills aus `.agents/skills`**, laut GitHub-Doku
-  gleichrangig zu `.github/skills` und `.claude/skills`.
-- **`.vscode/settings.json` überschreibt** die User- und Remote-Einstellungen.
-  Reihenfolge: Standard < User < Remote < Workspace < Richtlinie. Einfache
-  Werte und Listen werden ersetzt, Objekte zusammengeführt. Einige
-  Einstellungen gelten nur global (z. B. `git.path`, Update, Sicherheit).
-- **Es gibt kein privates Gegenstück zu `.vscode/settings.json`.** Persönliche
-  Einstellungen gehören in die Remote- oder User-Einstellungen. Die haben
-  Vorrang **unter** dem Repo: Was dort eingecheckt ist, kann niemand privat
-  übersteuern.
-- **`.vscode/extensions.json`** schlägt Erweiterungen nur vor und installiert
-  nichts.
-- **`.vscode/launch.json`** ergänzt die globalen Startkonfigurationen (Einstellung
-  `launch`). Beide erscheinen nebeneinander (Quelle: `debugConfigurationManager.ts`).
-- **`.vscode/mcp.json`** ist das Format des eingebauten Modus, der im Februar
-  2027 entfällt. **`.mcp.json` im Hauptordner** (Format `mcpServers`) liest VS
-  Code 1.147 bereits (Quelle: `workspaceDotMcpDiscovery.ts`), ebenso der
-  Copilot-Modus und Claude Code. Die Server laufen auf dem Linux-Rechner.
-- **Workspace Trust:** Ist der Ordner nicht vertrauenswürdig, sperrt VS Code
-  Agents, MCP-Server aus dem Repo und Teile der Workspace-Einstellungen.
-- **Verschachtelte `AGENTS.md`** in Unterordnern liest der Copilot-Modus von
-  selbst. Der eingebaute Modus braucht dafür `chat.useNestedAgentsMdFiles: true`
-  (experimentell, Standard aus).
-- **Agent Plugins:** VS Code liest Plugin-Empfehlungen aus
-  `.github/copilot/settings.json` und `.github/copilot/settings.local.json`
-  (Schlüssel `extraKnownMarketplaces` und `enabledPlugins`), außerdem aus
-  `.claude/settings.json` (Quelle: `workspacePluginSettingsService.ts`). Die
-  Datei unter `.github/copilot/` nutzt auch die Copilot-CLI.
-- VS Code **installiert empfohlene Plugins nicht selbst**. Es zeigt „This
-  workspace recommends 1 agent plugin.“ mit dem Knopf „Show Plugins“ (Quelle:
-  `claudePluginRecommendations.ts`). Vor der ersten Installation muss man den
-  Marktplatz als vertrauenswürdig bestätigen.
-- **Aktualisierung:** VS Code prüft installierte Plugins etwa alle 24 Stunden
-  und aktualisiert sie ohne Nachfrage per `git pull`, solange
-  `extensions.autoUpdate` an ist (Standard). Quelle: `pluginAutoUpdate.ts` und
-  `AGENTS_PLUGINS.md`. Bei getakteter Verbindung wartet die Aktualisierung.
-- **Superpowers:** Der Marktplatz `obra/superpowers-marketplace` hat das
-  Claude-Format (`.claude-plugin/marketplace.json`), das VS Code versteht. Er
-  nennt das Plugin `superpowers` (heute 7.0.2) mit der Quelle
-  `https://github.com/obra/superpowers.git` ohne feste Version. Er zeigt also
-  immer auf den neuesten Stand. Skills aus Plugins erscheinen im Chat mit dem
-  Plugin-Namen als Präfix, z. B. `/superpowers:brainstorming`.
-- **Plugin aus einem Ordner im Repo:** Das geht nur über `chat.pluginLocations`.
-  Die Einstellung ist experimentell und hat den Gültigkeitsbereich „machine“
-  (Quelle: `chat.shared.contribution.ts`). Sie darf also nicht in
-  `.vscode/settings.json` stehen. Marktplätze, die ein Repo empfiehlt, müssen
-  auf GitHub oder ein Git-Repo zeigen. Ein Ordner im Repo selbst geht nicht
-  (Quelle: `marketplaceReference.ts`).
-- **Superpowers-Repo:** `https://github.com/obra/superpowers`, Lizenz MIT,
-  Versionen als Tags (`v7.0.2` = Commit `22f0b463e7a5e579904dd6211a520321035526f7`).
-  Unter `skills/` liegen 15 Skills. Jeder ist ein Ordner mit `SKILL.md`, der
-  Dateikopf enthält nur `name` (= Ordnername) und `description`. Einige
-  Ordner enthalten Skripte. Dazu kommt ein Hook (`hooks/session-start`), der
-  beim Sitzungsstart den Skill `using-superpowers` lädt.
-- Auf dem Server ist Node 22 vorhanden (über nvm), `uvx` nicht.
-- **Azure DevOps MCP:** Microsoft betreibt einen Remote-Server unter
-  `https://mcp.dev.azure.com/<organisation>` (allgemein verfügbar seit August
-  2026) und empfiehlt ihn vor dem lokalen Server (`npx @azure-devops/mcp`).
-  Voraussetzungen: Die Organisation hängt an Microsoft Entra ID, der Rechner
-  erreicht `mcp.dev.azure.com` per HTTPS. Anmeldung per Entra ID, die Rechte
-  des Nutzers in Azure DevOps gelten weiter. Einschränken lässt er sich über
-  die Header `X-MCP-Readonly` und `X-MCP-Toolsets`. Claude Code braucht dafür
-  eine eigene App-Registrierung in Entra ID. VS Code 1.147 liest HTTP-Server
-  mit `url` und `headers` aus `.mcp.json` (Quelle: `nativeMcpDiscoveryAdapters.ts`).
+- **`~` is the home directory on the Linux machine.** In a remote window, VS
+  Code resolves `~` through the remote system (`pathService.userHome()`). So
+  private files live per developer on the server, not on Windows.
+- **`.gitignore` does not matter for the standard folders.** VS Code reads
+  them directly. For this design it is only a side note, because private files
+  live outside the repo anyway.
+- **Copilot (also the CLI) reads skills from `.agents/skills`**, equal in rank
+  to `.github/skills` and `.claude/skills` according to the GitHub docs.
+- **`.vscode/settings.json` overrides** the user and remote settings. Order:
+  default < user < remote < workspace < policy. Simple values and lists are
+  replaced, objects are merged. Some settings apply only globally (for example
+  `git.path`, update, security).
+- **There is no private counterpart to `.vscode/settings.json`.** Personal
+  settings belong in the remote or user settings. They rank **below** the repo:
+  whatever is checked in there cannot be overridden privately.
+- **`.vscode/extensions.json`** only suggests extensions and installs nothing.
+- **`.vscode/launch.json`** adds to the global launch configurations (setting
+  `launch`). Both appear side by side (source: `debugConfigurationManager.ts`).
+- **MCP files.** `.vscode/mcp.json` is the format of the built-in mode, which
+  is removed in February 2027. VS Code 1.147 already reads `.mcp.json` in the
+  main folder (format `mcpServers`, source: `workspaceDotMcpDiscovery.ts`), as
+  do the Copilot mode and Claude Code. VS Code also reads the private file
+  `~/.copilot/mcp-config.json` by default (setting
+  `chat.mcp.discovery.enabled`, source "copilot", on by default). It lists
+  those servers in "MCP: List Servers" with the source "GitHub Copilot CLI".
+  The Copilot CLI reads the same file, and the file can be moved with
+  `$COPILOT_HOME`. "MCP: Open Remote User Configuration" offers it as "Copilot
+  Remote Configuration (Recommended)". The servers run on the Linux machine.
+- **Workspace Trust:** If the folder is not trusted, VS Code blocks agents,
+  MCP servers from the repo and parts of the workspace settings.
+- **Nested `AGENTS.md`** files in subfolders are read by the Copilot mode on
+  its own. The built-in mode needs `chat.useNestedAgentsMdFiles: true` for
+  this (experimental, off by default).
+- **Agent plugins:** VS Code reads plugin recommendations from
+  `.github/copilot/settings.json` and `.github/copilot/settings.local.json`
+  (keys `extraKnownMarketplaces` and `enabledPlugins`), and also from
+  `.claude/settings.json` (source: `workspacePluginSettingsService.ts`). The
+  Copilot CLI also uses the file under `.github/copilot/`.
+- VS Code **does not install recommended plugins itself**. It shows "This
+  workspace recommends 1 agent plugin." with the button "Show Plugins" (source:
+  `claudePluginRecommendations.ts`). Before the first installation, you must
+  confirm the marketplace as trusted.
+- **Updates:** VS Code checks installed plugins about every 24 hours and
+  updates them without asking through `git pull`, as long as
+  `extensions.autoUpdate` is on (default). Source: `pluginAutoUpdate.ts` and
+  `AGENTS_PLUGINS.md`. On a metered connection the update waits.
+- **Superpowers:** The marketplace `obra/superpowers-marketplace` has the
+  Claude format (`.claude-plugin/marketplace.json`), which VS Code understands.
+  It lists the plugin `superpowers` (7.0.2 today) with the source
+  `https://github.com/obra/superpowers.git` and no fixed version. So it always
+  points to the latest state. Skills from plugins appear in the chat with the
+  plugin name as a prefix, for example `/superpowers:brainstorming`.
+- **Plugin from a folder in the repo:** This works only through
+  `chat.pluginLocations`. The setting is experimental and has the scope
+  "machine" (source: `chat.shared.contribution.ts`). So it must not be in
+  `.vscode/settings.json`. Marketplaces that a repo recommends must point to
+  GitHub or a Git repo. A folder in the repo itself does not work (source:
+  `marketplaceReference.ts`).
+- **Superpowers repo:** `https://github.com/obra/superpowers`, MIT license,
+  versions as tags (`v7.0.2` = commit `22f0b463e7a5e579904dd6211a520321035526f7`).
+  Under `skills/` there are 15 skills. Each is a folder with a `SKILL.md`
+  whose header contains only `name` (= folder name) and `description`. Some
+  folders contain scripts. There is also a hook (`hooks/session-start`) that
+  loads the skill `using-superpowers` at session start.
+- Node 22 is available on the server (through nvm), `uvx` is not.
+- **Azure DevOps MCP:** Microsoft runs a remote server at
+  `https://mcp.dev.azure.com/<organization>` (generally available since August
+  2026) and recommends it over the local server (`npx @azure-devops/mcp`).
+  Prerequisites: the organization is backed by Microsoft Entra ID, and the
+  machine reaches `mcp.dev.azure.com` over HTTPS. Sign-in is through Entra ID,
+  and the user's rights in Azure DevOps still apply. It can be restricted with
+  the headers `X-MCP-Readonly` and `X-MCP-Toolsets`. Claude Code needs its own
+  app registration in Entra ID for it. VS Code 1.147 reads HTTP servers with
+  `url` and `headers` (source: `nativeMcpDiscoveryAdapters.ts`).
 
-## Ansätze
+## Approaches
 
-Die Kernfrage war, wo private Anpassungen liegen.
+The core question was where private customizations live.
 
-**A. Privat in denselben Ordnern im Repo, am Namen erkennbar, gitignored.**
-Beispiel: `.agents/skills/local-experiment/`, `test.local.agent.md`. Vorteil:
-Alles liegt sichtbar im Workspace. Nachteil: Wer das Namensschema vergisst,
-checkt aus Versehen ein. Außerdem meldet ein offener Fehlerbericht
-([copilot-cli#2544](https://github.com/github/copilot-cli/issues/2544)), dass
-die Copilot-CLI gitignorte Dateien auslässt. Im Copilot-Modus wären private
-Dateien dann womöglich unsichtbar.
+**A. Private in the same folders in the repo, recognizable by name,
+gitignored.** Example: `.agents/skills/local-experiment/`, `test.local.agent.md`.
+Advantage: everything is visible in the workspace. Disadvantage: whoever
+forgets the naming scheme checks in by accident. Also, an open bug report
+([copilot-cli#2544](https://github.com/github/copilot-cli/issues/2544)) says
+that the Copilot CLI skips gitignored files. In Copilot mode, private files
+might then be invisible.
 
-**B. Privat im Home-Verzeichnis auf dem Linux-Rechner** (`~/.copilot/…`,
-`~/.agents/skills`). Das ist der offiziell vorgesehene Ort. Er gilt für alle
-Repos, schließt versehentliches Einchecken aus und wirkt in jedem Modus.
-Nachteil: Die Dateien liegen außerhalb des Workspace. Man öffnet sie über
-„Chat: Open Customizations“.
+**B. Private in the home directory on the Linux machine** (`~/.copilot/…`,
+`~/.agents/skills`). This is the officially intended place. It applies to all
+repos, rules out accidental check-in and works in every mode. Disadvantage:
+the files live outside the workspace. You open them through "Chat: Open
+Customizations".
 
-**C. Eigener gitignorter Ordner im Repo** (z. B. `.ai-local/`), über
-Einstellungen angemeldet. Verworfen, weil die nötigen Einstellungen
-(`chat.agentSkillsLocations`, `chat.promptFilesLocations`) als veraltet markiert
-sind und nur VS Code diesen Ordner kennen würde.
+**C. A separate gitignored folder in the repo** (for example `.ai-local/`),
+registered through settings. Rejected, because the required settings
+(`chat.agentSkillsLocations`, `chat.promptFilesLocations`) are marked as
+deprecated and only VS Code would know this folder.
 
-**Gewählt: B.** Der Nutzer hat B gewählt. Private Dateien dürfen außerhalb des
-Repos liegen. B ist robust gegenüber beiden Modi und dem Fehlerbericht.
+**Chosen: B.** The user chose B. Private files may live outside the repo. B is
+robust against both modes and the bug report.
 
-Für die **geteilten** Dateien wurde zwischen „alles unter `.github/`“ und
-„werkzeugneutral, wo möglich“ abgewogen. Gewählt ist die werkzeugneutrale
-Variante, weil der Nutzer sie sich wünscht und sie heute nichts kostet:
-`AGENTS.md`, `.agents/skills` und `.mcp.json` liest Copilot genauso wie andere
-Werkzeuge. Für Agents, gezielte Anweisungen und Hooks gibt es keinen
-werkzeugneutralen Ort, dort gilt `.github/`.
+For the **shared** files, the options were "everything under `.github/`" and
+"tool-neutral where possible". The tool-neutral variant is chosen, because the
+user wants it and it costs nothing today: Copilot reads `AGENTS.md` and
+`.agents/skills` just like other tools. For agents, targeted instructions and
+hooks there is no tool-neutral location, so `.github/` applies there.
 
-Für **Superpowers** wurden diese Wege abgewogen:
+For **Superpowers**, these ways were considered:
 
-- **A. Plugin-Empfehlung, VS Code aktualisiert selbst.** Das Repo empfiehlt
-  den Superpowers-Marktplatz in `.github/copilot/settings.json`, und VS Code
-  hält das installierte Plugin etwa täglich aktuell. Nachteil: Neue Versionen
-  kommen ungeprüft und nicht bei allen gleichzeitig an, und jeder muss das
-  Plugin einmal installieren. Zuerst gewählt, dann vom Nutzer durch C1
-  ersetzt.
-- **B. Feste Version über einen eigenen Marktplatz.** Ein Team-Repo nennt
-  Superpowers mit fester Version. Nachteil: ein zusätzliches Repo.
-- **C1. Skills als Kopie in `.agents/skills/`.** Ein Skript holt eine Version
-  und ersetzt die Superpowers-Ordner, das Ergebnis wird committet. Vorteile:
-  keine Einrichtung, beide Agent-Modi und die Copilot-CLI finden die Skills,
-  alle haben dieselbe Version, jedes Update ist ein prüfbarer Diff. Nachteile:
-  Die Skills heißen `/brainstorming` statt `/superpowers:brainstorming`, und
-  der Hook entfällt. Ersatz für den Hook ist ein Hinweis in `AGENTS.md`.
-- **C2. Ganzes Plugin als Kopie in `plugins/superpowers/`.** Präfix und Hook
-  blieben erhalten. Nachteil: `chat.pluginLocations` darf nicht in
-  `.vscode/settings.json` stehen. Jeder müsste es selbst setzen, und die
-  Copilot-CLI kennt die Einstellung nicht.
+- **A. Plugin recommendation, VS Code updates itself.** The repo recommends the
+  Superpowers marketplace in `.github/copilot/settings.json`, and VS Code keeps
+  the installed plugin up to date about daily. Disadvantage: new versions
+  arrive unreviewed and not for everyone at the same time, and everyone must
+  install the plugin once. Chosen first, then replaced by C1 at the user's
+  request.
+- **B. Fixed version through a separate marketplace.** A team repo names
+  Superpowers with a fixed version. Disadvantage: one more repo.
+- **C1. Skills as a copy in `.agents/skills/`.** A script fetches a version and
+  replaces the Superpowers folders, and the result is committed. Advantages: no
+  setup, both agent modes and the Copilot CLI find the skills, everyone has the
+  same version, every update is a reviewable diff. Disadvantages: the skills
+  are called `/brainstorming` instead of `/superpowers:brainstorming`, and the
+  hook is missing. The replacement for the hook is a hint in `AGENTS.md`.
+  Later, the copy moved to `.github/skills/` to keep external skills apart from
+  the own ones in `.agents/skills/` (see decision 14).
+- **C2. Whole plugin as a copy in `plugins/superpowers/`.** Prefix and hook
+  would be kept. Disadvantage: `chat.pluginLocations` must not be in
+  `.vscode/settings.json`. Everyone would have to set it themselves, and the
+  Copilot CLI does not know the setting.
 
-**Gewählt: C1.** Der Nutzer hat C1 gewählt. Es funktioniert bei jedem ohne
-Einrichtung, und Updates bleiben im Repo nachvollziehbar.
+**Chosen: C1.** The user chose C1. It works for everyone without setup, and
+updates stay traceable in the repo.
 
-## Entscheidungen
+For **MCP servers**, the options were a shared `.mcp.json` in the repo or a
+private file per developer:
 
-### Geteilt: im Repo, eingecheckt
+- **A. Shared `.mcp.json` with the Azure DevOps remote server.** Everyone gets
+  the server without setup. This was the first state of the demo. Disadvantage:
+  it presumes that the whole team wants and may use this server.
+- **B. Private `~/.copilot/mcp-config.json`.** Each developer decides which
+  servers they add. VS Code and the Copilot CLI read the file by default, and
+  nothing lands in the repo.
 
-| Was | Ort | Hinweis |
-|-----|-----|---------|
-| Hauptanweisungen für alle | `AGENTS.md` im Hauptordner | Einzige Hauptdatei. |
-| Anweisungen für ein Projekt | `<projekt>/AGENTS.md` | Liegt beim Code des Projekts. |
-| Regeln nach Dateimuster | `.github/instructions/<thema>.instructions.md` mit `applyTo` | `applyTo` bezieht sich auf den Hauptordner des Repos. |
-| Skills | `.agents/skills/<name>/SKILL.md` | Ordnername = `name` im Frontmatter. |
+**Chosen: B.** The demo no longer ships `.mcp.json`. The guide documents the
+private file with the Azure DevOps example. If the team later wants a shared
+server, it goes into `.mcp.json` (format `mcpServers`).
+
+## Decisions
+
+### Shared: in the repo, checked in
+
+| What | Location | Note |
+|------|----------|------|
+| Main instructions for everyone | `AGENTS.md` in the main folder | The only main file. |
+| Instructions for one project | `<project>/AGENTS.md` | Lives next to the project's code. |
+| Rules by file pattern | `.github/instructions/<topic>.instructions.md` with `applyTo` | `applyTo` is relative to the main folder of the repo. |
+| Skills | `.agents/skills/<name>/SKILL.md` | Folder name = `name` in the frontmatter. |
 | Agents | `.github/agents/<name>.agent.md` | |
-| Hooks | `.github/hooks/` | Nur dokumentiert, keine Demo. |
-| MCP-Server | `.mcp.json` im Hauptordner | Format `mcpServers`. Keine Geheimnisse eintragen. Nur Server, deren Laufzeit für alle auf dem Server systemweit verfügbar ist. |
-| Editor-Einstellungen | `.vscode/settings.json` | Nur, was für alle gleich sein muss. |
-| Empfohlene Erweiterungen | `.vscode/extensions.json` | |
-| Fremde Skills (Superpowers) | `.github/skills/<name>/` als Kopie, getrennt von den eigenen Skills, Stand in `tools/external-skills/lock.json` | Nie von Hand ändern, nur über `tools/external-skills/update.py`. |
-| Debug-Konfigurationen | `.vscode/launch.json` | Unverändert wie bisher, nicht Teil der Demo. |
+| Hooks | `.github/hooks/` | Documented only, no demo. |
+| MCP servers | None shipped; `.mcp.json` in the main folder if the team decides | Format `mcpServers`. Enter no secrets. Only servers whose runtime is available system-wide on the server for everyone. |
+| Editor settings | `.vscode/settings.json` | Only what must be the same for everyone. |
+| Recommended extensions | `.vscode/extensions.json` | |
+| External skills (Superpowers) | `.github/skills/<name>/` as a copy, kept apart from the own skills, status in `tools/external-skills/lock.json` | Never edit by hand, only through `tools/external-skills/update.py`. |
+| Debug configurations | `.vscode/launch.json` | Unchanged as before, not part of the demo. |
 
-### Privat: im Home auf dem Linux-Rechner
+### Private: in the home directory on the Linux machine
 
-| Was | Ort |
-|-----|-----|
-| Persönliche Daueranweisungen | `~/.copilot/instructions/<name>.instructions.md` mit `applyTo: "**"` |
-| Persönliche Regeln nach Dateimuster | `~/.copilot/instructions/<thema>.instructions.md` |
+| What | Location |
+|------|----------|
+| Personal standing instructions | `~/.copilot/instructions/<name>.instructions.md` with `applyTo: "**"` |
+| Personal rules by file pattern | `~/.copilot/instructions/<topic>.instructions.md` |
 | Skills | `~/.agents/skills/<name>/SKILL.md` |
 | Agents | `~/.copilot/agents/<name>.agent.md` |
 | Hooks | `~/.copilot/hooks/` |
-| MCP-Server | Copilot-Modus: `~/.copilot/mcp-config.json`; eingebauter Modus: „MCP: Open Remote User Configuration“ |
-| VS-Code-Einstellungen | Remote-Einstellungen („Preferences: Open Remote Settings“) |
-| Plugins zum Ausprobieren | In VS Code über die Plugin-Ansicht installieren. Das gilt nur für einen selbst, eine Datei im Repo ist nicht nötig. |
+| MCP servers | `~/.copilot/mcp-config.json` (or `$COPILOT_HOME/mcp-config.json`), format `mcpServers`; the guide has the Azure DevOps example |
+| VS Code settings | Remote settings ("Preferences: Open Remote Settings") |
+| Plugins to try out | Install them in VS Code through the plugin view. This applies only to you, no file in the repo is needed. |
 
-Ein privater Skill, der denselben Namen hat wie ein geteilter, ist zu
-vermeiden. Die Anleitung empfiehlt dafür den Präfix `privat-` für private
-Skills.
+A private skill that has the same name as a shared one should be avoided. The
+guide recommends the prefix `private-` for private skills.
 
 ### `.gitignore`
 
-Private KI-Dateien liegen nicht im Repo. Für Claude Code empfiehlt die
-Anleitung `~/.claude/CLAUDE.md` und `~/.claude/settings.json`. Diese Einträge
-halten Claude-Dateien aus dem Repo:
+Private AI files do not live in the repo. For Claude Code, the guide recommends
+`~/.claude/CLAUDE.md` and `~/.claude/settings.json`. These entries keep Claude
+files out of the repo:
 
 - `CLAUDE.md`
 - `CLAUDE.local.md`
-- `.claude/` (deckt auch die bisherige Zeile `.claude/settings.local.json` ab,
-  die deshalb entfällt)
+- `.claude/` (also covers the former line `.claude/settings.local.json`, which
+  is therefore dropped)
 
-Ein Kommentar in `.gitignore` verweist darauf, dass private Anpassungen ins Home
-gehören.
+The Python cache `__pycache__/` and `.superpowers/` (session data of the skill
+`brainstorming`) are ignored as well. A comment in `.gitignore` points out that
+private customizations belong in the home directory.
 
-### Demo in diesem Repo
+### Demo in this repo
 
-| Datei | Zweck | Woran man das Erkennen prüft |
-|-------|-------|------------------------------|
-| `AGENTS.md` (neu) | Übernimmt den Inhalt der heutigen `CLAUDE.md` (Zweck des Repos, Deutsch, Hinweis zur VS-Code-Prüfung) und verweist auf die Anleitung. Ersetzt den Superpowers-Hook mit dem Hinweis, vor jeder Aufgabe zu prüfen, ob ein Skill passt, und dafür den Skill `using-superpowers` zu lesen. | Erscheint unter „Instructions“; wird in Antworten als Referenz genannt. |
-| `projects/example-app/AGENTS.md` und `README.md` (neu) | Beispielprojekt mit einer eigenen, gut erkennbaren Regel. | Frage zu einer Datei im Projekt: Die Antwort nennt diese `AGENTS.md` als Referenz. |
-| `.github/instructions/markdown.instructions.md` (neu) | Stilregeln für Doku, `applyTo: "**/*.md"`. | Erscheint unter „Instructions“; greift beim Bearbeiten von `.md`-Dateien. |
-| `.agents/skills/commit-message/SKILL.md` (neu) | Schreibt eine Commit-Nachricht aus den Änderungen. Beispielformat: `<bereich>: <Beschreibung im Imperativ>`, Leerzeile, Stichpunkte. Im Skill als Beispiel gekennzeichnet, das das Team durch sein echtes Format ersetzt. | Erscheint unter „Skills“ als Workspace-Skill und als `/commit-message`. |
-| `.github/agents/reviewer.agent.md` (neu) | Prüft Änderungen, darf nur lesen und suchen, nichts ändern. | Erscheint in der Agent-Auswahl als „reviewer“. |
-| `.mcp.json` (neu) | Meldet den Remote-MCP-Server von Azure DevOps an: Name `azure-devops`, `type: http`, URL `https://mcp.dev.azure.com/gmhgruppe`. Keine Laufzeit auf dem Server nötig, Anmeldung per Microsoft Entra ID in VS Code. | „MCP: List Servers“ zeigt `azure-devops`. Nach der Anmeldung liefert eine Frage nach den Projekten von `gmhgruppe` Ergebnisse. |
-| `.vscode/settings.json` (neu) | `chat.useNestedAgentsMdFiles: true`, mit Kommentar warum. Sonst nichts. | Einstellung ist im Workspace-Tab gesetzt. |
-| `.vscode/extensions.json` (neu) | Empfiehlt die Copilot-Erweiterung. | Unter Erweiterungen „@recommended“. |
-| `tools/external-skills/update.py` (neu) | Holt eine Superpowers-Version per `git clone` (Standard: neuester Tag `v*`) und ersetzt nur die Ordner, die in `lock.json` stehen. Bricht ohne Änderung ab, wenn ein neuer Skill wie ein eigener Ordner heißt oder das Holen scheitert. `--check` meldet, ob es eine neuere Version gibt. Nur Standardbibliothek und `git`. | `python3 tools/external-skills/update.py --check` meldet „aktuell“. |
-| `tools/external-skills/lock.json` (neu, vom Skript geschrieben) | Quelle, Version, Commit, Liste der kopierten Skill-Ordner. | Steht auf `v7.0.2`. |
-| `tools/external-skills/licenses/superpowers/LICENSE` (neu, vom Skript kopiert) | MIT-Lizenz von Superpowers, Pflicht bei Kopien. | |
-| `.github/skills/<15 Superpowers-Skills>/` (neu, vom Skript kopiert) und `.github/skills/README.md` | Die Skills von Superpowers `v7.0.2`, unverändert. | Erscheinen unter „Skills“ als Workspace-Skills; `/brainstorming` ist aufrufbar. |
-| `.gitignore` (geändert) | Siehe oben. | |
-| `docs/genai-framework.md` (neu) | Anleitung für das Team, allgemein gehalten, siehe unten. | |
-| `README.md` (geändert) | Kurz: was eingerichtet ist, Link zur Anleitung, und die Prüfliste für die Demo-Dateien (siehe unten). | |
-| `~/.agents/skills/private-example/SKILL.md` (neu, **außerhalb des Repos**, im Home des Nutzers auf diesem Rechner) | Zeigt, dass private Skills erkannt werden. | Erscheint unter „Skills“ als persönlicher Skill; `git status` zeigt nichts. |
+| File | Purpose | How to check that it is detected |
+|------|---------|----------------------------------|
+| `AGENTS.md` | Contains the purpose of the repo, the language rule (repository content in English, replies in the user's language), the hint about the check in VS Code, and a pointer to the guide. Replaces the Superpowers hook with the hint to check before each task whether a skill fits, and to read the skill `using-superpowers` for that. Also explains that `superpowers:<name>` means the skill `<name>` under `.github/skills/`. | Appears under "Instructions"; is named as a reference in answers. |
+| `projects/example-app/AGENTS.md` and `README.md` | Example project with its own, easily recognizable rule (answers start with "Rules from projects/example-app/AGENTS.md active."). | Question about a file in the project: the answer names this `AGENTS.md` as a reference. |
+| `.github/instructions/markdown.instructions.md` | Style rules for docs (English, short sentences, sentence-case headings, tables for comparisons), `applyTo: "**/*.md"`. | Appears under "Instructions"; applies when editing `.md` files. |
+| `.agents/skills/commit-message/SKILL.md` | Writes a commit message from the changes. Example format: `<area>: <imperative description>`, blank line, bullet points. Marked in the skill as an example that the team replaces with its real format. Only suggests the message, never commits. | Appears under "Skills" as a workspace skill and as `/commit-message`. |
+| `.github/agents/reviewer.agent.md` | Reviews changes, may only read and search, changes nothing (`tools: ['read', 'search']`). | Appears in the agent picker as "reviewer". |
+| `.vscode/settings.json` | `chat.useNestedAgentsMdFiles: true`, with a comment why. Nothing else. | The setting is set in the workspace tab. |
+| `.vscode/extensions.json` | Recommends the Copilot extension. | Under extensions "@recommended". |
+| `tools/external-skills/update.py` | Reads the source list, fetches a version of a source with `git clone` (default: latest tag `v*`) and replaces only the folders listed in `lock.json`. Aborts without changes if a new skill has the same name as an own folder or a skill from another source, or if fetching fails. `--check` reports whether a newer version exists. Standard library and `git` only. | `python3 tools/external-skills/update.py --check` reports "up to date". |
+| `tools/external-skills/sources.json` | List of external sources, Superpowers is the first entry. Keys: `url`, `path`, `license`, `only`, `exclude`. | |
+| `tools/external-skills/lock.json` (written by the script) | Source, version, commit, list of the copied skill folders, per source. | Shows `v7.0.2`. |
+| `tools/external-skills/licenses/<source>/LICENSE` (copied by the script) | MIT license of Superpowers, required for copies. | |
+| `.github/skills/<15 Superpowers skills>/` (copied by the script) and `.github/skills/README.md` | The skills of Superpowers `v7.0.2`, unchanged. | Appear under "Skills" as workspace skills; `/brainstorming` can be called. |
+| `.gitignore` | See above. | |
+| `docs/genai-framework.md` | Guide for the team, kept general, see below. | |
+| `README.md` | Short: what is set up, link to the guide, and the checklist for the demo files (see below). | |
+| `~/.agents/skills/private-example/SKILL.md` (**outside the repo**, in the user's home directory on this machine) | Shows that private skills are detected. | Appears under "Skills" as a personal skill; `git status` shows nothing. |
+| `~/.copilot/mcp-config.json` (**outside the repo**, optional) | Private MCP configuration with the Azure DevOps remote server: name `azure-devops`, `type: http`, URL `https://mcp.dev.azure.com/gmhgruppe`. No runtime on the server needed, sign-in through Microsoft Entra ID. | "MCP: List Servers" shows `azure-devops` with the source "GitHub Copilot CLI". After sign-in, a question about the projects of `gmhgruppe` returns results. |
 
-`CLAUDE.md` und `.claude/settings.json` bleiben lokal beim Nutzer liegen,
-unverändert und gitignored. Die heutige `CLAUDE.md` sagt noch, `.claude/` werde
-eingecheckt. Das passt der Nutzer bei Bedarf selbst an.
+`CLAUDE.md` and `.claude/settings.json` stay local with the user, unchanged and
+gitignored. The current `CLAUDE.md` still says `.claude/` is checked in. The
+user adapts that themselves if needed.
 
-### Anleitung für das Team (`docs/genai-framework.md`)
+### Guide for the team (`docs/genai-framework.md`)
 
-Kurz und zum Kopieren ins Monorepo gedacht. Ins Monorepo wandern die Struktur
-und diese Anleitung. Die Demo-Dateien sind nur Beispiele. Deshalb ist die
-Anleitung allgemein formuliert und nennt die Demo-Dateien höchstens als
-Beispiel. Inhalt:
+Short and meant to be copied into the monorepo. The structure and this guide
+move into the monorepo. The demo files are only examples. So the guide is
+worded generally and names the demo files at most as an example. Content:
 
-1. **Was liegt wo:** die beiden Tabellen „Geteilt“ und „Privat“ von oben.
-2. **Regeln:**
-   - In `.vscode/settings.json` nur, was für alle gleich sein muss, weil es
-     niemand privat übersteuern kann.
-   - Keine Geheimnisse in `.mcp.json` oder anderen eingecheckten Dateien.
-   - Geteilte MCP-Server nur mit Laufzeiten, die systemweit auf dem Server
-     installiert sind (nicht pro Nutzer, z. B. über nvm).
-   - Private Skills mit Präfix `privat-`.
-   - Privates immer ins Home, auch für Claude Code (`~/.claude/`).
-   - Fremde Skills (heute Superpowers) nie von Hand ändern, nur über ihr
-     Update-Skript. Eigene Anpassungen gehören in eigene Skills.
-   - Neue Fremdquellen vorher im Team abstimmen, denn Skills können Skripte
-     mitbringen, die auf dem Server laufen.
-   - Neue geteilte Anpassungen erst privat ausprobieren, dann ins Repo
-     verschieben.
-3. **Private Ordner einmalig anlegen:** ein `mkdir -p`-Befehl für die privaten
-   Ordner.
-4. **Prüfen, ob alles erkannt wird:** allgemeines Vorgehen über „Chat: Open
-   Customizations“, „MCP: List Servers“ und die Referenzen einer Chat-Antwort.
-   Die konkrete Prüfliste für die Demo steht im README.
-5. **Bestehendes im Monorepo übernehmen:**
+1. **What goes where:** the two tables "Shared" and "Private" from above.
+2. **Rules:**
+   - Put only what must be the same for everyone in `.vscode/settings.json`,
+     because nobody can override it privately.
+   - No secrets in `.mcp.json` or other checked-in files.
+   - Shared MCP servers preferably remote over HTTP; local ones only with
+     runtimes that are installed system-wide on the server (not per user, for
+     example through nvm).
+   - Private skills with the prefix `private-`.
+   - Always put private things in the home directory, also for Claude Code
+     (`~/.claude/`).
+   - Never edit external skills (today Superpowers) by hand, only through
+     their update script. Put your own changes in your own skills.
+   - Agree on new external sources with the team first, because skills can
+     bring scripts that run on the server.
+   - Try new shared customizations privately first, then move them into the
+     repo.
+3. **Create private folders once:** one `mkdir -p` command for the private
+   folders.
+4. **Private MCP servers:** the file `~/.copilot/mcp-config.json`, how VS Code
+   and the Copilot CLI read it, the Azure DevOps example, `chmod 600`,
+   prerequisites, optional headers, and where a shared server would go.
+5. **Check that everything is detected:** general procedure through "Chat: Open
+   Customizations", "MCP: List Servers" and the references of a chat answer.
+   The concrete checklist for the demo is in the README.
+6. **Take over existing files in the monorepo:**
 
-   | Vorhanden | Was tun |
-   |-----------|---------|
-   | `.github/copilot-instructions.md` | Inhalt in `AGENTS.md` übernehmen, Datei löschen. Sonst laden beide, und Inhalte doppeln sich. |
-   | `.github/prompts/*.prompt.md` | In Skills unter `.agents/skills/` umwandeln. |
-   | `.github/chatmodes/*.chatmode.md` | Als `.agent.md` nach `.github/agents/` verschieben. |
-   | `.github/skills/` mit eigenen Skills | Nach `.agents/skills/` verschieben. `.github/skills/` ist für fremde Skills reserviert. |
-   | `.vscode/mcp.json` | Server nach `.mcp.json` übertragen (`servers` wird zu `mcpServers`), Datei löschen. |
-   | KI-Einstellungen in `.vscode/settings.json` | Prüfen, ob sie für alle gelten sollen. Persönliches in die Remote-Einstellungen verschieben. |
+   | Existing | What to do |
+   |----------|------------|
+   | `.github/copilot-instructions.md` | Move the content into `AGENTS.md`, delete the file. Otherwise both load and the content is duplicated. |
+   | `.github/prompts/*.prompt.md` | Convert to skills under `.agents/skills/`. |
+   | `.github/chatmodes/*.chatmode.md` | Move to `.github/agents/` as `.agent.md`. |
+   | `.github/skills/` with own skills | Move to `.agents/skills/`. `.github/skills/` is reserved for external skills. |
+   | `.vscode/mcp.json` | Move the servers by hand to `~/.copilot/mcp-config.json` or, if shared, to `.mcp.json` (`servers` becomes `mcpServers`), delete the file. |
+   | AI settings in `.vscode/settings.json` | Check whether they should apply to everyone. Move personal ones to the remote settings. |
 
-6. **Später Claude Code dazunehmen:** Die Ordnernamen bleiben vorerst, wie sie
-   sind. Die Anleitung enthält diese Übertragungstabelle:
+7. **Adding Claude Code later:** The folder names stay as they are for now. The
+   guide contains this transfer table:
 
-   | Teil | Für Claude Code | Aufwand |
-   |------|-----------------|---------|
-   | `AGENTS.md` im Hauptordner | `CLAUDE.md` mit `@AGENTS.md`, dann aus `.gitignore` nehmen | keiner |
-   | Superpowers-Kopie in `.github/skills/` | zieht mit den anderen Skills nach `.claude/skills/` um (Zielordner im Skript anpassen), oder Claude Code installiert das Plugin selbst | klein |
-   | `.mcp.json` | liest Claude Code direkt | keiner |
-   | Skills in `.agents/skills/` | gleiches Format, Claude Code sucht aber nur in `.claude/skills/` | Ordner verschieben (nicht verlinken, sonst zeigt VS Code jeden Skill doppelt) |
-   | `AGENTS.md` pro Projekt | je Projekt eine `CLAUDE.md` mit `@AGENTS.md` | klein |
-   | Regeln in `.github/instructions/` | nach `.claude/rules/`, im Frontmatter wird `applyTo` zu `paths` | mechanisch |
-   | Agents in `.github/agents/` | nach `.claude/agents/`, andere Werkzeugnamen im Frontmatter | jeden Agent umschreiben |
-   | Hooks in `.github/hooks/` | anderes Format in `.claude/settings.json` | neu schreiben |
-   | Privates in `~/.copilot/…`, `~/.agents/skills/` | `~/.claude/…` | verschieben |
+   | Part | For Claude Code | Effort |
+   |------|-----------------|--------|
+   | `AGENTS.md` in the main folder | `CLAUDE.md` with `@AGENTS.md`, then remove it from `.gitignore` | none |
+   | Superpowers copy in `.github/skills/` | moves with the other skills to `.claude/skills/` (adjust the target folder in the script), or Claude Code installs the plugin itself | small |
+   | `.mcp.json` (if the team shares servers) | Claude Code reads it directly; the Azure DevOps remote server needs its own app registration in Entra ID | small |
+   | Skills in `.agents/skills/` | same format, but Claude Code searches only in `.claude/skills/` | move the folders (do not link them, otherwise VS Code shows every skill twice) |
+   | `AGENTS.md` per project | one `CLAUDE.md` with `@AGENTS.md` per project | small |
+   | Rules in `.github/instructions/` | to `.claude/rules/`, `applyTo` becomes `paths` in the frontmatter | mechanical |
+   | Agents in `.github/agents/` | to `.claude/agents/`, different tool names in the frontmatter | rewrite each agent |
+   | Hooks in `.github/hooks/` | different format in `.claude/settings.json` | rewrite |
+   | Private files in `~/.copilot/…`, `~/.agents/skills/` | `~/.claude/…` | move |
 
-7. **Superpowers aktualisieren:**
-   - Prüfen: `python3 tools/external-skills/update.py --check`
-   - Aktualisieren: `python3 tools/external-skills/update.py` (neueste
-     Version) oder mit Versionsangabe, z. B. `… v7.0.3`
-   - Danach `git diff --stat` ansehen, die Release-Notes von Superpowers lesen,
-     committen und per Pull Request ins Team geben.
-   - Zurück auf eine ältere Version geht genauso, mit deren Tag.
+8. **Updating external skills:**
+   - Check: `python3 tools/external-skills/update.py --check`
+   - Update: `python3 tools/external-skills/update.py` (latest version) or
+     with a version, for example `… superpowers v7.0.3`
+   - Then look at `git diff --stat`, read the Superpowers release notes,
+     commit and hand it to the team through a pull request.
+   - Going back to an older version works the same way, with its tag.
+   - New sources go into `sources.json`; the guide describes the keys and how
+     to resolve a skill name that exists in two sources (`exclude`).
 
-### Prüfliste für die Demo (im README)
+### Checklist for the demo (in the README)
 
-1. Repo-Hauptordner per Remote-SSH öffnen und als vertrauenswürdig markieren.
-2. „Chat: Open Customizations“ öffnen:
+1. Open the main folder of the repo over Remote-SSH and mark it as trusted.
+2. Open "Chat: Open Customizations":
    - Instructions: `AGENTS.md`, `markdown.instructions.md`
-   - Skills: `commit-message` (Workspace), `private-example` (persönlich)
+   - Skills: `commit-message` (workspace), `private-example` (personal)
    - Agents: `reviewer`
-3. Im Chat `/` tippen: `commit-message` und `private-example` werden
-   angeboten.
-4. Agent-Auswahl: `reviewer` ist wählbar.
-5. Im Chat nach einer Datei in `projects/example-app/` fragen: In den
-   Referenzen erscheint `projects/example-app/AGENTS.md`.
-6. „MCP: List Servers“: `azure-devops` aus `.mcp.json` ist gelistet. Starten,
-   mit dem Microsoft-Konto anmelden und im Chat nach den Projekten in
-   `gmhgruppe` fragen.
-7. Erweiterungen, Filter „@recommended“: Copilot ist empfohlen.
-8. Superpowers: „Chat: Open Customizations“ zeigt die Superpowers-Skills
-   (z. B. `brainstorming`, `writing-plans`) als Workspace-Skills, und im Chat
-   ist `/brainstorming` aufrufbar. Im Terminal meldet
-   `python3 tools/external-skills/update.py --check` den Stand.
-9. Punkte 2 bis 6 und 8 in beiden Agent-Modi wiederholen, soweit die Auswahl
-   angeboten wird.
-10. Im Terminal `git status`: Der private Skill, `CLAUDE.md` und `.claude/`
-    tauchen nicht auf.
+3. Type `/` in the chat: `commit-message` and `private-example` are offered.
+4. Agent picker: `reviewer` can be selected.
+5. Ask the chat about a file in `projects/example-app/`: the references show
+   `projects/example-app/AGENTS.md`.
+6. No MCP server comes from the repo. Add `azure-devops` to
+   `~/.copilot/mcp-config.json` as in the guide. "MCP: List Servers" shows
+   `azure-devops` with the source "GitHub Copilot CLI". Start it, sign in with
+   the Microsoft account and ask in the chat: "List the projects in
+   gmhgruppe."
+7. Extensions, filter "@recommended": Copilot is recommended.
+8. Superpowers: "Chat: Open Customizations" shows the Superpowers skills (for
+   example `brainstorming`, `writing-plans`) as workspace skills, and
+   `/brainstorming` can be called in the chat. In the terminal,
+   `python3 tools/external-skills/update.py --check` reports the status.
+9. Repeat items 2 to 6 and 8 in both agent modes, as far as the picker offers
+   them.
+10. Run `git status` in the terminal: the private skill, `CLAUDE.md` and
+    `.claude/` do not show up.
 
-## Dem Umsetzer überlassen
+## Left to the implementer
 
-- Genauer Wortlaut der Beispielinhalte. Sie müssen kurz und an einem Merkmal
-  eindeutig erkennbar sein.
-- Gültige Werkzeugnamen im Frontmatter von `reviewer.agent.md` für VS Code
-  1.147. Zu prüfen in der Referenz für Agent-Dateien.
-- Die genaue ID der Copilot-Erweiterung für `extensions.json`. Auf dem Server
-  ist nur `github.copilot` installiert, was auf eine zusammengelegte
-  Erweiterung hindeutet.
-- Ob VS Code eine eingebaute Übertragung von `.vscode/mcp.json` nach
-  `.mcp.json` anbietet. Falls ja, kommt sie in die Anleitung.
+- Exact wording of the example content. It must be short and clearly
+  recognizable by one feature.
+- Valid tool names in the frontmatter of `reviewer.agent.md` for VS Code
+  1.147. To check in the reference for agent files.
+- The exact ID of the Copilot extension for `extensions.json`. Only
+  `github.copilot` is installed on the server, which points to a merged
+  extension.
+- Whether VS Code offers a built-in transfer from `.vscode/mcp.json` to
+  `.mcp.json`. It does not in 1.147, so the guide describes the manual move.
 
-## Meine Entscheidungen (bitte prüfen)
+## My decisions (please review)
 
-Diese Punkte habe ich festgelegt, sie wurden nicht ausdrücklich besprochen:
+I set these points; they were not explicitly discussed:
 
-1. `AGENTS.md` ist die einzige Hauptdatei. `CLAUDE.md` und `.claude/` kommen
-   nicht ins Repo (Nutzerentscheidung), sondern in `.gitignore`.
-2. Skills liegen in `.agents/skills` statt in `.github/skills`.
-3. MCP-Server liegen in `.mcp.json` statt in `.vscode/mcp.json`.
-4. Keine Prompt-Dateien, stattdessen Skills.
-5. Projektanweisungen als `AGENTS.md` im Projektordner, dazu die
-   experimentelle Einstellung für den eingebauten Modus.
-6. Hooks werden nur dokumentiert, nicht vorgeführt.
-7. Ein privater Beispiel-Skill wird in deinem Home auf diesem Rechner angelegt.
-8. Die Anleitung liegt in `docs/genai-framework.md`. Sie ist allgemein, die
-   Prüfliste für die Demo steht im README.
-9. Statt eines Demo-MCP-Servers ist der Remote-MCP-Server von Azure DevOps
-   eingetragen (Nutzerentscheidung, Organisation `gmhgruppe`). Meine
-   Festlegungen: Remote statt lokal über `npx`, weil Node hier nur pro Nutzer
-   über nvm installiert ist und Microsoft den Remote-Server empfiehlt; alle
-   Werkzeuge freigegeben, kein `X-MCP-Readonly`.
-10. Das Commit-Format im Beispiel-Skill ist ein Platzhalter, den ihr durch
-    euer echtes Format ersetzt.
-11. Claude Code findet die geteilten Skills und Agents vorerst nicht. Das ist
-    so gewollt, solange ihr nur Copilot nutzt.
-12. Privates liegt immer im Home, auch für Claude Code. Die Einträge in
-    `.gitignore` sind nur ein Sicherheitsnetz.
-13. Die Anleitung enthält eine Tabelle, wie man bestehende Copilot-Dateien im
-    Monorepo übernimmt.
-14. Superpowers liegt als Kopie in `.github/skills/`, getrennt von den eigenen
-    Skills in `.agents/skills/` (Weg C1, Trennung per Nachtrag auf Wunsch des
-    Nutzers). Meine Festlegungen dazu: Alle 15 Skills werden
-    kopiert, nichts wird ausgelassen. Das Skript ist in Python geschrieben und
-    holt die Dateien per `git`. Der Stand steht in `tools/external-skills/`, nicht
-    im Skill-Ordner. Die Lizenz wird mitkopiert. `AGENTS.md` ersetzt den
-    Hook. Nachtrag: Das Skript liest eine Quellenliste
-    (`tools/external-skills/sources.json`), Superpowers ist der erste Eintrag.
-    Der Stand aller Quellen steht in einer `lock.json`, die Lizenzen unter
-    `tools/external-skills/licenses/<quelle>/`. Gleiche Skill-Namen in zwei
-    Quellen löst `auslassen`.
-15. Das README enthält keinen Abschnitt mehr zu Claude Code.
+1. `AGENTS.md` is the only main file. `CLAUDE.md` and `.claude/` do not go
+   into the repo (user decision), but into `.gitignore`.
+2. Own skills live in `.agents/skills` instead of `.github/skills`.
+3. No MCP server is shipped in the repo. Each developer adds MCP servers in
+   the private `~/.copilot/mcp-config.json`. A shared `.mcp.json` is an option
+   the team can decide on later.
+4. No prompt files, skills instead.
+5. Project instructions as `AGENTS.md` in the project folder, plus the
+   experimental setting for the built-in mode.
+6. Hooks are only documented, not demonstrated.
+7. A private example skill is created in your home directory on this machine.
+8. The guide lives in `docs/genai-framework.md`. It is general, and the
+   checklist for the demo is in the README.
+9. The Azure DevOps remote MCP server (user decision, organization
+   `gmhgruppe`) is documented as the example in the private MCP
+   configuration, not shipped as `.mcp.json`. My choices: remote instead of
+   local through `npx`, because Node is installed here only per user through
+   nvm and Microsoft recommends the remote server; all tools enabled, no
+   `X-MCP-Readonly`.
+10. The commit format in the example skill is a placeholder that you replace
+    with your real format.
+11. Claude Code does not find the shared skills and agents for now. This is
+    intended as long as you only use Copilot.
+12. Private things always live in the home directory, also for Claude Code. The
+    entries in `.gitignore` are only a safety net.
+13. The guide contains a table on how to take over existing Copilot files in
+    the monorepo.
+14. Superpowers lives as a copy in `.github/skills/`, kept apart from the own
+    skills in `.agents/skills/` (way C1, separation at the user's request). My
+    choices: all 15 skills are copied, nothing is left out. The script is
+    written in Python and fetches the files through `git`. The status lives in
+    `tools/external-skills/`, not in the skill folder. The license is copied
+    along. `AGENTS.md` replaces the hook. The script reads a source list
+    (`tools/external-skills/sources.json`), Superpowers is the first entry. The
+    status of all sources is in a `lock.json`, the licenses are under
+    `tools/external-skills/licenses/<source>/`. The same skill name in two
+    sources is resolved with `exclude`.
+15. The README has no section about Claude Code anymore.
+16. All repository content is written in English. Replies follow the language
+    the user writes in. The original execution plan
+    (`docs/superpowers/plans/2026-11-21-genai-rahmen.md`) stays in German as a
+    historical record.

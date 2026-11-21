@@ -1,11 +1,12 @@
 ---
-description: Stilregeln für Dokumentation in Markdown
+description: Style rules for documentation in Markdown
 applyTo: "**/*.md"
 ---
 
-# Markdown-Regeln
+# Markdown rules
 
-- Schreibe auf Deutsch.
-- Halte die Sätze kurz.
-- Schreibe Überschriften im Satzstil: nur das erste Wort und Eigennamen groß.
-- Nutze Tabellen für Gegenüberstellungen.
+- Write in English.
+- Keep sentences short.
+- Write headings in sentence case: only the first word and proper nouns are
+  capitalized.
+- Use tables for comparisons.

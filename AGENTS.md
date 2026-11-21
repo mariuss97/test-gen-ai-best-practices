@@ -1,23 +1,27 @@
 # AGENTS.md
 
-Dieses Repo ist eine Spielwiese für einen GenAI-Rahmen mit GitHub Copilot in
-VS Code: Skills, Agents, Anweisungen und MCP-Server, zentral im Repository
-verwaltet.
+This repo is a playground for a GenAI framework with GitHub Copilot in
+VS Code: skills, agents, instructions and MCP servers, managed centrally in
+the repository.
 
-- Gespräche und Dokumentation auf Deutsch.
-- Geteilte Anpassungen liegen an den Standardorten im Repo und werden
-  eingecheckt. Die Übersicht steht in `docs/genai-framework.md`.
-- Privates gehört nie ins Repo, sondern in das Home-Verzeichnis des Entwicklers.
-- Der Nutzer arbeitet in VS Code über Remote-SSH. Nach Änderungen an
-  KI-Anpassungen, `.vscode/` oder dieser Datei nennst du kurz, was er in
-  VS Code prüfen kann (siehe `README.md`).
+- Write all repository content (docs, code, comments, commit messages) in
+  English. Reply in the language the user writes in.
+- Shared customizations live in the standard locations in the repo and are
+  checked in. The overview is in `docs/genai-framework.md`.
+- Private things never go into the repo. They belong in the developer's home
+  directory.
+- The user works in VS Code over Remote-SSH. After changes to AI
+  customizations, `.vscode/` or this file, briefly tell them what they can
+  check in VS Code (see `README.md`).
 
 ## Skills
 
-Prüfe vor jeder Aufgabe, ob ein Skill passt. Lies dafür zuerst den Skill
+Before each task, check whether a skill fits. To do so, first read the skill
 `using-superpowers`.
 
-Eigene Skills liegen in `.agents/skills/`, fremde Skills in `.github/skills/`.
-Die fremden Skills (heute Superpowers) unter `.github/skills/` änderst du nicht von Hand.
-Sie kommen über ein Skript ins Repo (siehe `tools/external-skills/lock.json`).
-`superpowers:<name>` in den Superpowers-Skills meint den Skill `<name>` unter `.github/skills/`.
+Own skills live in `.agents/skills/`, external skills in `.github/skills/`.
+Do not edit the external skills (today Superpowers) under `.github/skills/` by
+hand. They come into the repo through a script (see
+`tools/external-skills/lock.json`).
+`superpowers:<name>` in the Superpowers skills means the skill `<name>` under
+`.github/skills/`.

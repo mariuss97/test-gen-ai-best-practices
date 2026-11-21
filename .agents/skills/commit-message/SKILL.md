@@ -1,38 +1,38 @@
 ---
 name: commit-message
-description: Schreibt eine Commit-Nachricht aus den aktuellen Änderungen. Verwenden, wenn der Nutzer um eine Commit-Nachricht bittet oder fragt, wie er seine Änderungen beschreiben soll.
+description: Writes a commit message from the current changes. Use when the user asks for a commit message or asks how to describe their changes.
 ---
 
-# Commit-Nachricht schreiben
+# Write a commit message
 
-Dieser Skill ist ein Beispiel. Das Format unten ist nur ein Beispielformat;
-das Team ersetzt es durch sein echtes Format.
+This skill is an example. The format below is only an example format; the team
+replaces it with its real format.
 
-## Vorgehen
+## Steps
 
-1. Die aktuellen Änderungen ansehen (`git status`, `git diff`, bei gestagten
-   Änderungen `git diff --staged`).
-2. Eine Nachricht im folgenden Beispielformat schreiben:
-
-   ```text
-   <bereich>: <Beschreibung im Imperativ>
-
-   - Stichpunkt zu einer wichtigen Änderung
-   - Stichpunkt zu einer weiteren Änderung
-   ```
-
-   Zwischen Betreffzeile und Stichpunkten steht eine Leerzeile.
-
-3. Beispiel:
+1. Look at the current changes (`git status`, `git diff`, and
+   `git diff --staged` for staged changes).
+2. Write a message in the following example format:
 
    ```text
-   docs: Anleitung für Remote-SSH ergänzen
+   <area>: <imperative description>
 
-   - Prüfliste für VS Code hinzugefügt
-   - Hinweis zu Skills im Home-Verzeichnis ergänzt
+   - Bullet point about one important change
+   - Bullet point about another change
    ```
 
-## Wichtig
+   A blank line separates the subject line from the bullet points.
 
-Nicht selbst committen. Die Nachricht nur vorschlagen und dem Nutzer
-überlassen, ob und wann er sie verwendet.
+3. Example:
+
+   ```text
+   docs: add guide for Remote-SSH
+
+   - Add checklist for VS Code
+   - Add note about skills in the home directory
+   ```
+
+## Important
+
+Do not commit yourself. Only suggest the message and leave it to the user
+whether and when to use it.

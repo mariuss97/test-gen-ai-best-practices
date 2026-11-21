@@ -13,7 +13,7 @@ class InstructionsTest(unittest.TestCase):
 
     def test_project_agents_md_has_marker(self):
         text = (REPO / "projects/example-app/AGENTS.md").read_text(encoding="utf-8")
-        self.assertIn("Regeln aus projects/example-app/AGENTS.md aktiv.", text)
+        self.assertIn("Rules from projects/example-app/AGENTS.md active.", text)
 
     def test_markdown_instructions_apply_to_md(self):
         fm = frontmatter(REPO / ".github/instructions/markdown.instructions.md")

@@ -21,8 +21,8 @@ class SkillsAgentsTest(unittest.TestCase):
 
     def test_commit_skill_marks_format_as_example(self):
         text = (REPO / ".agents/skills/commit-message/SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("<bereich>: <Beschreibung im Imperativ>", text)
-        self.assertIn("Beispiel", text)
+        self.assertIn("<area>: <imperative description>", text)
+        self.assertIn("example", text.lower())
 
     def test_own_and_external_skills_are_separate(self):
         lock = json.loads((REPO / "tools/external-skills/lock.json").read_text(encoding="utf-8"))

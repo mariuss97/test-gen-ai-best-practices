@@ -1,4 +1,4 @@
-# Beispiel-App
+# Example app
 
-Dieser Ordner ist ein Platzhalter für ein Projekt im Monorepo. Er zeigt, wie
-ein Projekt eigene Anweisungen in einer `AGENTS.md` mitbringt.
+This folder is a placeholder for a project in the monorepo. It shows how a
+project brings its own instructions in an `AGENTS.md`.
